@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MealMate — Lên thực đơn & đi chợ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fdf6ee; --ink:#26211c; --muted:#8b8178; --line:#efe6da;
+    --kho:#e8590c; --kho-bg:#fff3e9; --kho-bd:#ffd9bd;
+    --canh:#0f9d8c; --canh-bg:#e9f8f5; --canh-bd:#b5e7df;
+    --accent:#e8590c; --accent2:#f08c00; --ok:#2f9e44; --warn:#e03131;
+    --shadow:0 10px 30px rgba(120,80,40,.10); --shadow-sm:0 4px 14px rgba(120,80,40,.08);
+    --radius:20px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:"Be Vietnam Pro",system-ui,sans-serif; color:var(--ink);
+    background:
+      radial-gradient(900px 400px at 100% -5%, #ffe7c7 0%, transparent 55%),
+      radial-gradient(800px 400px at -10% 0%, #ffe0d0 0%, transparent 50%),
+      var(--bg);
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  header{text-align:center; padding:40px 16px 8px}
+  .logo{font-size:40px; font-weight:800; letter-spacing:-1px; margin:0;
+    background:linear-gradient(120deg,#e8590c,#f08c00); -webkit-background-clip:text; background-clip:text; color:transparent}
+  header p{margin:8px 0 0; color:var(--muted); font-size:15px}
+  .wrap{max-width:980px; margin:0 auto; padding:0 16px 80px}
+
+  .tabs{display:flex; gap:8px; justify-content:center; margin:22px 0 26px; flex-wrap:wrap}
+  .tab{border:none; background:#fff; color:var(--ink); padding:11px 20px; border-radius:999px;
+    cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow-sm); transition:.18s; font-family:inherit}
+  .tab:hover{transform:translateY(-2px)}
+  .tab.active{background:linear-gradient(120deg,#e8590c,#f08c00); color:#fff; box-shadow:0 8px 20px rgba(232,89,12,.32)}
+
+  .card{background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:26px; margin-bottom:20px}
+  .panel{display:none; animation:fade .3s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+  h2{margin:0 0 4px; font-size:21px}
+  .sub{color:var(--muted); font-size:14px; margin:0 0 18px}
+
+  /* Planner controls */
+  .controls{display:flex; gap:22px; flex-wrap:wrap; align-items:flex-end; margin-bottom:22px}
+  .control{display:flex; flex-direction:column; gap:8px; font-size:13px}
+  .control label{font-weight:600; color:var(--muted)}
+  .control input[type=number]{width:140px; padding:11px 13px; border:1.5px solid var(--line); border-radius:12px; font-size:15px; font-family:inherit}
+  .control input:focus{outline:none; border-color:var(--accent2)}
+  .switch{display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; font-weight:600; color:var(--ink); padding-bottom:10px}
+  .switch input{width:20px; height:20px; accent-color:var(--accent)}
+  .days-row{display:flex; align-items:center; gap:10px}
+  .days-quick{display:flex; gap:6px}
+  .chip{border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:8px 12px; cursor:pointer; font-weight:700; font-size:13px; font-family:inherit; color:var(--muted)}
+  .chip.active{background:var(--ink); color:#fff; border-color:var(--ink)}
+
+  .bigbtn{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; border:none; cursor:pointer;
+    color:#fff; background:linear-gradient(120deg,#e8590c,#f08c00); padding:18px; border-radius:16px;
+    font-size:19px; font-weight:800; font-family:inherit; box-shadow:0 12px 26px rgba(232,89,12,.34); transition:.14s}
+  .bigbtn:hover{transform:translateY(-2px)}
+  .bigbtn:active{transform:translateY(0)}
+
+  /* Plan output */
+  .plan-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; margin-top:24px}
+  .day{border:1.5px solid var(--line); border-radius:16px; padding:16px; background:linear-gradient(180deg,#fff,#fffaf3)}
+  .day-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px}
+  .day-title{font-weight:800; font-size:15px}
+  .day-cost{font-size:13px; font-weight:700; color:var(--accent)}
+  .day-cost.over{color:var(--warn)}
+  .reroll{border:none; background:#fff4ec; color:var(--kho); border-radius:8px; width:30px; height:30px; cursor:pointer; font-size:15px}
+  .mini{display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px dashed var(--line)}
+  .mini:first-of-type{border-top:none}
+  .mini .ic{font-size:18px; line-height:1.4}
+  .mini .mn{font-weight:700; font-size:15px}
+  .mini .md{font-size:12px; color:var(--muted)}
+  .tag{font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; vertical-align:middle; margin-left:6px}
+  .tag.kho{background:var(--kho-bg); color:var(--kho)}
+  .tag.canh{background:var(--canh-bg); color:var(--canh)}
+
+  .summary{display:flex; gap:14px; flex-wrap:wrap; margin-top:22px}
+  .stat{flex:1; min-width:150px; background:linear-gradient(135deg,#fff3e9,#ffe9d6); border-radius:14px; padding:16px}
+  .stat .k{font-size:13px; color:var(--muted); font-weight:600}
+  .stat .v{font-size:24px; font-weight:800; margin-top:4px}
+
+  /* Shopping list */
+  .shop-head{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:6px}
+  .shop-actions{display:flex; gap:8px}
+  .btn-ghost{border:1.5px solid var(--line); background:#fff; padding:9px 16px; border-radius:11px; cursor:pointer; font-weight:600; font-family:inherit; font-size:13px}
+  .btn-ghost:hover{border-color:var(--accent2)}
+  .shop-cat{margin-top:18px}
+  .shop-cat h3{font-size:14px; margin:0 0 8px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px}
+  .shop-item{display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; transition:.15s}
+  .shop-item.done{opacity:.5; text-decoration:line-through}
+  .shop-item input{width:20px; height:20px; accent-color:var(--ok); cursor:pointer}
+  .shop-item .nm{font-weight:600; flex:1}
+  .shop-item .qt{font-weight:800; color:var(--accent)}
+  .shop-item .pr{font-size:12px; color:var(--muted); min-width:80px; text-align:right}
+
+  /* Form */
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:560px){.form-grid{grid-template-columns:1fr}}
+  .field{display:flex; flex-direction:column; gap:7px}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:13px; font-weight:600; color:var(--muted)}
+  .field input,.field select{padding:11px 13px; border:1.5px solid var(--line); border-radius:12px; font-size:15px; background:#fff; font-family:inherit}
+  .field input:focus,.field select:focus{outline:none; border-color:var(--accent2)}
+  .hint{font-size:12px; color:var(--muted)}
+  .save{margin-top:18px; border:none; background:var(--ok); color:#fff; padding:13px 26px; border-radius:12px; font-weight:700; cursor:pointer; font-size:15px; font-family:inherit}
+
+  /* Dish list */
+  .list-head{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+  .filter-pills{display:flex; gap:8px}
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th,td{text-align:left; padding:11px 8px; border-bottom:1px solid var(--line)}
+  th{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.4px}
+  .del{border:none; background:#ffe3e3; color:var(--warn); border-radius:8px; padding:6px 11px; cursor:pointer; font-weight:700; font-family:inherit}
+  .count{color:var(--muted); font-size:13px}
+  .empty{text-align:center; color:var(--muted); padding:34px}
+
+  .cloud-badge{position:fixed; top:14px; right:14px; background:#fff; border:1px solid var(--line); box-shadow:var(--shadow-sm);
+    padding:7px 13px; border-radius:999px; font-size:12.5px; font-weight:700; color:var(--muted); z-index:50}
+  .cloud-badge.ok{color:#0b7a6c; border-color:var(--canh-bd); background:var(--canh-bg)}
+  .cloud-badge.bad{color:var(--warn); border-color:#ffc9c9; background:#fff0f0}
+  .cloud-badge.off{display:none}
+  .toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff;
+    padding:13px 24px; border-radius:13px; font-weight:600; opacity:0; transition:.3s; pointer-events:none; box-shadow:var(--shadow)}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  @media print{
+    header,.tabs,.controls,.bigbtn,.shop-actions,.reroll{display:none!important}
+    body{background:#fff} .card{box-shadow:none; padding:0}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 class="logo">🍳 MealMate</h1>
+  <p>Lên thực đơn nhiều ngày &amp; tạo danh sách đi chợ — giá tham khảo Bách Hóa Xanh TP.HCM</p>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" data-tab="plan">📅 Lên thực đơn</button>
+    <button class="tab" data-tab="add">➕ Thêm món</button>
+    <button class="tab" data-tab="list">📋 Danh sách món</button>
+  </div>
+
+  <!-- PLANNER -->
+  <section class="panel active" id="panel-plan">
+    <div class="card">
+      <h2>Random thực đơn để đi chợ</h2>
+      <p class="sub">Mỗi ngày 1 món khô + 1 món canh. Chọn số ngày rồi bấm tạo — kèm danh sách đi chợ gộp sẵn.</p>
+      <div class="controls">
+        <div class="control">
+          <label>Số ngày</label>
+          <div class="days-row">
+            <input type="number" id="opt-numdays" min="1" max="14" value="5">
+            <div class="days-quick">
+              <button class="chip" data-d="3">3</button>
+              <button class="chip active" data-d="5">5</button>
+              <button class="chip" data-d="7">7</button>
+            </div>
+          </div>
+        </div>
+        <div class="control">
+          <label class="switch"><input type="checkbox" id="opt-norepeat" checked> Không trùng món trong đợt</label>
+        </div>
+        <div class="control">
+          <label class="switch"><input type="checkbox" id="opt-budget" checked> Giới hạn ngân sách/ngày</label>
+          <input type="number" id="opt-budget-val" min="0" step="10000" value="120000">
+        </div>
+      </div>
+      <button class="bigbtn" id="btn-plan">🎲 Tạo thực đơn &amp; danh sách đi chợ</button>
+    </div>
+
+    <div id="plan-out"></div>
+  </section>
+
+  <!-- ADD -->
+  <section class="panel" id="panel-add">
+    <div class="card">
+      <h2>Thêm món ăn mới</h2>
+      <p class="sub">Nhập nguyên liệu kèm số lượng để món hiện trong danh sách đi chợ.</p>
+      <form id="add-form">
+        <div class="form-grid">
+          <div class="field full">
+            <label>Tên món *</label>
+            <input id="f-name" required placeholder="VD: Gà kho gừng">
+          </div>
+          <div class="field">
+            <label>Loại *</label>
+            <select id="f-type"><option value="kho">Món khô (mặn)</option><option value="canh">Món canh</option></select>
+          </div>
+          <div class="field">
+            <label>Giá ước tính / 2 người (đ)</label>
+            <input id="f-price" type="number" min="0" step="1000" placeholder="VD: 55000">
+          </div>
+          <div class="field full">
+            <label>Nguyên liệu chính</label>
+            <input id="f-ingredients" placeholder="VD: thịt gà 400 g, gừng 1 củ, hành tím 3 củ">
+            <span class="hint">Định dạng: <b>tên SỐ ĐƠNVỊ</b>, cách nhau bằng dấu phẩy. VD: <i>thịt bò 250 g, hành tây 1 củ</i></span>
+          </div>
+          <div class="field"><label>Thời gian nấu (phút)</label><input id="f-time" type="number" min="0" placeholder="30"></div>
+          <div class="field"><label>Độ khó</label><select id="f-difficulty"><option>Dễ</option><option>Trung bình</option><option>Khó</option></select></div>
+          <div class="field"><label>Calories (tùy chọn)</label><input id="f-calories" type="number" min="0" placeholder="350"></div>
+        </div>
+        <button class="save" type="submit">💾 Lưu món</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- LIST -->
+  <section class="panel" id="panel-list">
+    <div class="card">
+      <div class="list-head">
+        <div class="filter-pills">
+          <button class="chip active" data-filter="all">Tất cả</button>
+          <button class="chip" data-filter="kho">Món khô</button>
+          <button class="chip" data-filter="canh">Món canh</button>
+        </div>
+        <span class="count" id="list-count"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Tên món</th><th>Loại</th><th>Nguyên liệu</th><th>Phút</th><th>Độ khó</th><th>Giá</th><th>Cal</th><th></th></tr></thead>
+          <tbody id="list-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="cloud-badge" id="cloud-badge" title="Trạng thái đồng bộ">⏳ đang kết nối…</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   CẤU HÌNH ĐỒNG BỘ — dán thông tin Supabase của bạn vào đây 1 lần
+   (Project Settings → API). anon key là khóa công khai, an toàn.
+   ============================================================ */
+const SUPABASE_URL  = 'https://kkitgonaieaaeqnbvppy.supabase.co';   // <-- dán Project URL
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXRnb25haWVhYWVxbmJ2cHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTY4MDgsImV4cCI6MjA5ODI3MjgwOH0.PCJBn7_f7hG6ZMfy23-70tA8_vEBpXhxwd9StHpVsMs';               // <-- dán anon public key
+const SYNC_CODE     = 'bep-nha';                            // tên "tủ" dữ liệu, đổi tùy ý
+
+const STORE_DISHES='mealmate.dishes.v2';
+const STORE_OPTS='mealmate.opts.v2';
+
+/* ingredient format: [name, qty, unit] for 2 servings */
+const SAMPLE=[
+ // ===== MÓN KHÔ — THỊT HEO =====
+ ['Thịt kho trứng','kho',[['thịt ba chỉ',300,'g'],['trứng gà',4,'quả'],['nước dừa',200,'ml']],45,'Dễ',62000,420],
+ ['Thịt kho tiêu','kho',[['thịt ba chỉ',300,'g'],['tiêu',1,'gói'],['hành tím',3,'củ']],35,'Dễ',52000,380],
+ ['Thịt rang cháy cạnh','kho',[['thịt ba chỉ',300,'g'],['hành tím',3,'củ']],30,'Dễ',50000,400],
+ ['Thịt rim nước mắm','kho',[['thịt nạc vai',300,'g'],['nước mắm',1,'chai nhỏ']],30,'Dễ',50000,360],
+ ['Thịt rim tiêu','kho',[['thịt nạc vai',300,'g'],['tiêu',1,'gói']],30,'Dễ',50000,370],
+ ['Sườn kho','kho',[['sườn non',400,'g'],['hành tím',3,'củ']],45,'Trung bình',78000,450],
+ ['Sườn rim chua ngọt','kho',[['sườn non',400,'g'],['cà chua',2,'trái'],['dứa',0.25,'trái']],40,'Trung bình',82000,430],
+ ['Thịt viên sốt cà chua','kho',[['thịt heo bằm',300,'g'],['cà chua',3,'trái'],['hành lá',1,'bó']],35,'Trung bình',58000,390],
+ ['Thịt áp chảo','kho',[['thịt thăn heo',300,'g'],['tỏi',1,'củ']],20,'Dễ',55000,350],
+ ['Thịt nướng chảo','kho',[['thịt ba chỉ',300,'g'],['sả',3,'cây']],25,'Dễ',54000,380],
+ // ===== GÀ =====
+ ['Gà kho gừng','kho',[['thịt gà',400,'g'],['gừng',1,'củ'],['hành tím',3,'củ']],35,'Dễ',55000,400],
+ ['Gà kho tiêu','kho',[['thịt gà',400,'g'],['tiêu',1,'gói']],35,'Dễ',55000,390],
+ ['Gà chiên nước mắm','kho',[['cánh gà',400,'g'],['nước mắm',1,'chai nhỏ'],['tỏi',1,'củ']],30,'Trung bình',56000,420],
+ ['Gà chiên giòn','kho',[['đùi gà',400,'g'],['bột chiên giòn',1,'gói']],35,'Trung bình',62000,480],
+ ['Gà áp chảo','kho',[['ức gà',350,'g'],['tỏi',1,'củ']],20,'Dễ',48000,320],
+ ['Gà nướng','kho',[['đùi gà',400,'g'],['mật ong',1,'chai nhỏ'],['sả',3,'cây']],40,'Trung bình',64000,430],
+ ['Gà rim mặn ngọt','kho',[['thịt gà',400,'g'],['hành tím',3,'củ']],35,'Dễ',55000,400],
+ ['Gà sốt mật ong','kho',[['cánh gà',400,'g'],['mật ong',1,'chai nhỏ']],35,'Trung bình',60000,440],
+ // ===== BÒ =====
+ ['Bò xào hành tây','kho',[['thịt bò',250,'g'],['hành tây',1,'củ']],20,'Dễ',88000,380],
+ ['Bò xào cần tây','kho',[['thịt bò',250,'g'],['cần tây',1,'bó']],20,'Dễ',86000,360],
+ ['Bò xào bông cải','kho',[['thịt bò',250,'g'],['bông cải',1,'cây']],20,'Dễ',90000,360],
+ ['Bò lúc lắc','kho',[['thịt bò thăn',250,'g'],['ớt chuông',1,'trái'],['hành tây',1,'củ']],25,'Trung bình',98000,420],
+ ['Bò sốt tiêu đen','kho',[['thịt bò',250,'g'],['tiêu đen',1,'gói']],25,'Trung bình',94000,410],
+ ['Bò xào nấm','kho',[['thịt bò',250,'g'],['nấm rơm',200,'g']],22,'Dễ',92000,370],
+ // ===== CÁ (CHIÊN) =====
+ ['Cá rô phi chiên','kho',[['cá rô phi',1,'con']],25,'Dễ',42000,350],
+ ['Cá basa chiên','kho',[['cá basa',400,'g']],20,'Dễ',45000,360],
+ ['Cá thu chiên','kho',[['cá thu',2,'khúc']],20,'Dễ',65000,400],
+ ['Cá diêu hồng chiên','kho',[['cá diêu hồng',1,'con']],25,'Dễ',52000,370],
+ ['Cá nục chiên','kho',[['cá nục',400,'g']],20,'Dễ',40000,340],
+ ['Cá chiên sả ớt','kho',[['cá basa',400,'g'],['sả',3,'cây'],['ớt',3,'trái']],25,'Dễ',48000,360],
+ ['Cá chiên nước mắm','kho',[['cá nục',400,'g'],['nước mắm',1,'chai nhỏ']],25,'Dễ',44000,370],
+ // ===== TRỨNG =====
+ ['Trứng chiên hành','kho',[['trứng gà',4,'quả'],['hành lá',1,'bó']],10,'Dễ',24000,220],
+ ['Trứng cuộn','kho',[['trứng gà',4,'quả']],15,'Dễ',22000,230],
+ ['Trứng hấp','kho',[['trứng gà',4,'quả'],['thịt heo bằm',100,'g']],20,'Dễ',38000,210],
+ ['Trứng sốt cà chua','kho',[['trứng gà',4,'quả'],['cà chua',3,'trái']],15,'Dễ',30000,240],
+ ['Trứng chiên nấm','kho',[['trứng gà',4,'quả'],['nấm rơm',150,'g']],15,'Dễ',34000,230],
+ ['Trứng chiên thịt bằm','kho',[['trứng gà',4,'quả'],['thịt heo bằm',100,'g']],15,'Dễ',40000,280],
+ // ===== MÓN CANH — RAU LÁ =====
+ ['Canh cải xanh','canh',[['cải xanh',1,'bó'],['gừng',0.5,'củ']],15,'Dễ',16000,80],
+ ['Canh cải ngọt','canh',[['cải ngọt',1,'bó']],15,'Dễ',16000,80],
+ ['Canh rau ngót','canh',[['rau ngót',1,'bó']],15,'Dễ',15000,70],
+ ['Canh rau dền','canh',[['rau dền',1,'bó']],15,'Dễ',15000,70],
+ ['Canh mồng tơi','canh',[['mồng tơi',1,'bó']],15,'Dễ',15000,75],
+ ['Canh cải thảo','canh',[['cải thảo',0.5,'cây']],15,'Dễ',17000,80],
+ ['Canh cải bẹ xanh','canh',[['cải bẹ xanh',1,'bó']],15,'Dễ',16000,80],
+ // ===== RAU CỦ =====
+ ['Canh bí đỏ','canh',[['bí đỏ',500,'g']],20,'Dễ',20000,110],
+ ['Canh bí xanh','canh',[['bí xanh',500,'g']],18,'Dễ',18000,90],
+ ['Canh bí đao','canh',[['bí đao',500,'g']],18,'Dễ',18000,85],
+ ['Canh bầu','canh',[['bầu',1,'trái']],18,'Dễ',16000,80],
+ ['Canh su su','canh',[['su su',2,'trái']],18,'Dễ',18000,85],
+ ['Canh khoai tây','canh',[['khoai tây',3,'củ'],['cà rốt',1,'củ']],20,'Dễ',22000,130],
+ ['Canh cà rốt','canh',[['cà rốt',2,'củ']],20,'Dễ',16000,100],
+ ['Canh củ cải trắng','canh',[['củ cải trắng',2,'củ']],20,'Dễ',18000,90],
+ // ===== NẤM =====
+ ['Canh nấm kim châm','canh',[['nấm kim châm',200,'g'],['cà chua',1,'trái']],15,'Dễ',24000,90],
+ ['Canh nấm đùi gà','canh',[['nấm đùi gà',200,'g']],15,'Dễ',26000,95],
+ ['Canh nấm rơm','canh',[['nấm rơm',200,'g']],15,'Dễ',24000,90],
+ // ===== THANH MÁT =====
+ ['Canh cà chua trứng','canh',[['cà chua',3,'trái'],['trứng gà',2,'quả']],15,'Dễ',24000,110],
+ ['Canh chua chay','canh',[['dứa',0.5,'trái'],['đậu bắp',5,'trái'],['cà chua',2,'trái'],['giá đỗ',100,'g']],25,'Trung bình',35000,120],
+ ['Canh rau củ thập cẩm','canh',[['cà rốt',1,'củ'],['khoai tây',2,'củ'],['su su',1,'trái']],25,'Dễ',28000,130],
+ ['Canh bắp cải','canh',[['bắp cải',0.5,'cây']],18,'Dễ',17000,85],
+ ['Canh bí đỏ cà rốt','canh',[['bí đỏ',400,'g'],['cà rốt',1,'củ']],22,'Dễ',24000,120],
+ ['Canh bầu nấu gừng','canh',[['bầu',1,'trái'],['gừng',0.5,'củ']],18,'Dễ',18000,85],
+];
+
+let dishes=load(STORE_DISHES,null);
+if(!dishes){
+  dishes=SAMPLE.map((s,i)=>({id:'d'+(i+1),name:s[0],type:s[1],ing:s[2],time:s[3],difficulty:s[4],price:s[5],calories:s[6]}));
+  save(STORE_DISHES,dishes);
+}
+let opts=load(STORE_OPTS,{numdays:5,norepeat:true,budgetOn:true,budget:120000});
+
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function fmt(n){return Math.round(n||0).toLocaleString('vi-VN')+'đ'}
+function ingText(arr){return (arr||[]).map(x=>`${x[0]} ${trimNum(x[1])} ${x[2]}`).join(', ')}
+function trimNum(n){return Number.isInteger(n)?n:n.toString().replace(/\.?0+$/,'')}
+
+let toastTimer;
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2000)}
+
+/* ---- tabs ---- */
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); document.getElementById('panel-'+b.dataset.tab).classList.add('active');
+  if(b.dataset.tab==='list') renderList();
+});
+
+/* ---- options ---- */
+const elNum=document.getElementById('opt-numdays'),elNR=document.getElementById('opt-norepeat'),
+  elBO=document.getElementById('opt-budget'),elB=document.getElementById('opt-budget-val');
+elNum.value=opts.numdays; elNR.checked=opts.norepeat; elBO.checked=opts.budgetOn; elB.value=opts.budget;
+function syncOpts(){opts={numdays:+elNum.value,norepeat:elNR.checked,budgetOn:elBO.checked,budget:+elB.value};save(STORE_OPTS,opts)}
+[elNum,elNR,elBO,elB].forEach(e=>e.addEventListener('change',syncOpts));
+document.querySelectorAll('.days-quick .chip').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.days-quick .chip').forEach(x=>x.classList.remove('active'));
+  c.classList.add('active'); elNum.value=c.dataset.d; syncOpts();
+});
+elNum.addEventListener('input',()=>document.querySelectorAll('.days-quick .chip').forEach(x=>x.classList.toggle('active',x.dataset.d===elNum.value)));
+
+/* ---- plan generation ---- */
+let currentPlan=[];
+function rand(a){return a[Math.floor(Math.random()*a.length)]}
+
+function pickDay(usedKho,usedCanh){
+  const budgetOn=elBO.checked,budget=+elB.value;
+  let kho=dishes.filter(d=>d.type==='kho'),canh=dishes.filter(d=>d.type==='canh');
+  let kp=elNR.checked?kho.filter(d=>!usedKho.has(d.id)):kho;
+  let cp=elNR.checked?canh.filter(d=>!usedCanh.has(d.id)):canh;
+  if(!kp.length)kp=kho; if(!cp.length)cp=canh;
+  if(!kp.length||!cp.length)return null;
+  let k,c,over=false;
+  if(budgetOn&&budget>0){
+    const combos=[];
+    for(const x of kp)for(const y of cp)if((x.price||0)+(y.price||0)<=budget)combos.push([x,y]);
+    if(combos.length){const ch=rand(combos);k=ch[0];c=ch[1];}
+  }
+  if(!k){k=rand(kp);c=rand(cp);over=budgetOn&&budget>0&&((k.price||0)+(c.price||0))>budget;}
+  return {kho:k,canh:c,over};
+}
+
+function generate(){
+  const n=Math.max(1,Math.min(14,+elNum.value||1));
+  const usedKho=new Set(),usedCanh=new Set();
+  currentPlan=[];
+  for(let i=0;i<n;i++){
+    const day=pickDay(usedKho,usedCanh);
+    if(!day){toast('Chưa đủ món để tạo thực đơn');return}
+    usedKho.add(day.kho.id); usedCanh.add(day.canh.id);
+    currentPlan.push(day);
+  }
+  renderPlan();
+}
+function rerollDay(i){
+  const usedKho=new Set(),usedCanh=new Set();
+  currentPlan.forEach((d,j)=>{if(j!==i){usedKho.add(d.kho.id);usedCanh.add(d.canh.id)}});
+  const day=pickDay(usedKho,usedCanh);
+  if(day){currentPlan[i]=day;renderPlan()}
+}
+
+function renderPlan(){
+  if(!currentPlan.length){document.getElementById('plan-out').innerHTML='';return}
+  let total=0,cal=0;
+  const days=currentPlan.map((d,i)=>{
+    const cost=(d.kho.price||0)+(d.canh.price||0); total+=cost; cal+=(d.kho.calories||0)+(d.canh.calories||0);
+    return `<div class="day">
+      <div class="day-head">
+        <span class="day-title">Ngày ${i+1}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span class="day-cost ${d.over?'over':''}">${fmt(cost)}</span>
+          <button class="reroll" title="Đổi món ngày này" onclick="rerollDay(${i})">🔄</button>
+        </span>
+      </div>
+      <div class="mini"><span class="ic">🥩</span><div><div class="mn">${d.kho.name}<span class="tag kho">khô</span></div><div class="md">${d.kho.time} phút · ${fmt(d.kho.price)}</div></div></div>
+      <div class="mini"><span class="ic">🥬</span><div><div class="mn">${d.canh.name}<span class="tag canh">canh</span></div><div class="md">${d.canh.time} phút · ${fmt(d.canh.price)}</div></div></div>
+    </div>`;
+  }).join('');
+
+  const shop=buildShopping(currentPlan);
+  document.getElementById('plan-out').innerHTML=`
+    <div class="card">
+      <h2>🍽️ Thực đơn ${currentPlan.length} ngày</h2>
+      <div class="plan-grid">${days}</div>
+      <div class="summary">
+        <div class="stat"><div class="k">Tổng chi phí</div><div class="v">${fmt(total)}</div></div>
+        <div class="stat"><div class="k">Trung bình / ngày</div><div class="v">${fmt(total/currentPlan.length)}</div></div>
+        <div class="stat"><div class="k">Calo / ngày (ước tính)</div><div class="v">${Math.round(cal/currentPlan.length)}</div></div>
+      </div>
+    </div>
+    <div class="card" id="shop-card">
+      <div class="shop-head">
+        <div><h2>🛒 Danh sách đi chợ</h2><p class="sub" style="margin:0">Đã gộp nguyên liệu cho cả ${currentPlan.length} ngày — tích vào khi mua xong.</p></div>
+        <div class="shop-actions">
+          <button class="btn-ghost" onclick="copyShop()">📋 Sao chép</button>
+          <button class="btn-ghost" onclick="window.print()">🖨️ In</button>
+        </div>
+      </div>
+      ${shop.html}
+    </div>`;
+  window._shopText=shop.text;
+  document.getElementById('plan-out').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+const CATS=[
+  {key:'thit',label:'🥩 Thịt · Cá · Trứng',kw:['thịt','sườn','gà','bò','cá','trứng','tôm']},
+  {key:'nam',label:'🍄 Nấm',kw:['nấm']},
+  {key:'rau',label:'🥬 Rau · Củ · Quả',kw:['cải','rau','bí','bầu','su su','khoai','cà rốt','củ cải','bắp cải','mồng tơi','dền','ngót','thảo','bông cải','cần tây','hành tây','ớt chuông','cà chua','dứa','đậu bắp','giá đỗ']},
+  {key:'giavi',label:'🧂 Gia vị · Khác',kw:[]},
+];
+function catOf(name){
+  const n=name.toLowerCase();
+  for(const c of CATS){if(c.kw.some(k=>n.includes(k)))return c.key}
+  return 'giavi';
+}
+function buildShopping(plan){
+  const map={}; // key name|unit -> {name,unit,qty}
+  plan.forEach(d=>[d.kho,d.canh].forEach(dish=>(dish.ing||[]).forEach(([nm,q,u])=>{
+    const key=nm+'|'+u; if(!map[key])map[key]={name:nm,unit:u,qty:0}; map[key].qty+=q;
+  })));
+  const items=Object.values(map);
+  let html='',text='DANH SÁCH ĐI CHỢ ('+plan.length+' ngày)\n';
+  CATS.forEach(cat=>{
+    const list=items.filter(it=>catOf(it.name)===cat.key).sort((a,b)=>a.name.localeCompare(b.name,'vi'));
+    if(!list.length)return;
+    html+=`<div class="shop-cat"><h3>${cat.label}</h3>`;
+    text+='\n'+cat.label+'\n';
+    list.forEach(it=>{
+      const qt=`${trimNum(it.qty)} ${it.unit}`;
+      html+=`<label class="shop-item"><input type="checkbox" onchange="this.closest('.shop-item').classList.toggle('done',this.checked)"><span class="nm">${it.name}</span><span class="qt">${qt}</span></label>`;
+      text+=`  - ${it.name}: ${qt}\n`;
+    });
+    html+=`</div>`;
+  });
+  return {html,text};
+}
+function copyShop(){navigator.clipboard.writeText(window._shopText||'').then(()=>toast('✅ Đã sao chép danh sách'))}
+
+document.getElementById('btn-plan').onclick=generate;
+
+/* ---- add form ---- */
+function parseIng(str){
+  return str.split(',').map(s=>s.trim()).filter(Boolean).map(s=>{
+    const m=s.match(/^(.*?)\s+([\d.,]+)\s*(.*)$/);
+    if(m)return [m[1].trim(),parseFloat(m[2].replace(',','.'))||0,(m[3]||'').trim()||'phần'];
+    return [s,1,'phần'];
+  });
+}
+document.getElementById('add-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=document.getElementById('f-name').value.trim(); if(!name)return;
+  dishes.push({id:'d'+Date.now(),name,type:document.getElementById('f-type').value,
+    ing:parseIng(document.getElementById('f-ingredients').value),
+    time:+document.getElementById('f-time').value||0,
+    difficulty:document.getElementById('f-difficulty').value,
+    price:+document.getElementById('f-price').value||0,
+    calories:+document.getElementById('f-calories').value||0});
+  persistDishes(); e.target.reset(); toast('✅ Đã thêm "'+name+'"');
+});
+
+/* ---- list ---- */
+let listFilter='all';
+document.querySelectorAll('#panel-list .chip').forEach(p=>p.onclick=()=>{
+  document.querySelectorAll('#panel-list .chip').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active'); listFilter=p.dataset.filter; renderList();
+});
+function renderList(){
+  let rows=dishes.slice();
+  if(listFilter!=='all')rows=rows.filter(d=>d.type===listFilter);
+  rows.sort((a,b)=>a.type===b.type?a.name.localeCompare(b.name,'vi'):(a.type==='kho'?-1:1));
+  document.getElementById('list-count').textContent=
+    `${dishes.filter(d=>d.type==='kho').length} món khô · ${dishes.filter(d=>d.type==='canh').length} món canh`;
+  const body=document.getElementById('list-body');
+  if(!rows.length){body.innerHTML='<tr><td colspan="8" class="empty">Chưa có món nào</td></tr>';return}
+  body.innerHTML=rows.map(d=>`<tr>
+    <td><b>${d.name}</b></td>
+    <td><span class="tag ${d.type}">${d.type==='kho'?'Khô':'Canh'}</span></td>
+    <td style="color:var(--muted);font-size:13px">${ingText(d.ing)||'-'}</td>
+    <td>${d.time||'-'}</td><td>${d.difficulty||'-'}</td>
+    <td>${d.price?fmt(d.price):'-'}</td><td>${d.calories||'-'}</td>
+    <td><button class="del" data-id="${d.id}">Xóa</button></td></tr>`).join('');
+  body.querySelectorAll('.del').forEach(b=>b.onclick=()=>{dishes=dishes.filter(x=>x.id!==b.dataset.id);persistDishes();renderList()});
+}
+
+/* ================= ĐỒNG BỘ ĐA THIẾT BỊ (Supabase) ================= */
+let sb=null, pushTimer=null, lastPushedAt=0;
+const badge=document.getElementById('cloud-badge');
+const cloudReady = SUPABASE_URL && !SUPABASE_URL.includes('YOUR-PROJECT') && SUPABASE_KEY && !SUPABASE_KEY.includes('YOUR-ANON');
+
+function setBadge(text,kind){ badge.textContent=text; badge.className='cloud-badge'+(kind?' '+kind:''); }
+
+function persistDishes(){ save(STORE_DISHES,dishes); pushSoon(); }
+
+function pushSoon(){ if(!sb)return; clearTimeout(pushTimer); pushTimer=setTimeout(pushCloud,1200); }
+
+async function pushCloud(){
+  if(!sb)return;
+  const stamp=new Date().toISOString(); lastPushedAt=Date.now();
+  const {error}=await sb.from('mealmate').upsert({code:SYNC_CODE,data:dishes,updated_at:stamp});
+  if(error){ setBadge('⚠️ lỗi lưu','bad'); console.error(error); }
+  else setBadge('✓ đã đồng bộ','ok');
+}
+
+async function pullCloud(){
+  if(!sb)return;
+  const {data,error}=await sb.from('mealmate').select('data').eq('code',SYNC_CODE).maybeSingle();
+  if(error){ setBadge('⚠️ lỗi tải','bad'); console.error(error); return; }
+  if(data&&Array.isArray(data.data)){
+    dishes=data.data; save(STORE_DISHES,dishes); renderList(); generate();
+    setBadge('✓ đã đồng bộ','ok');
+  } else {
+    // cloud trống: đẩy dữ liệu mẫu hiện có lên làm bản gốc
+    await pushCloud();
+  }
+}
+
+async function initCloud(){
+  if(!cloudReady){ setBadge('','off'); return; }       // chưa cấu hình → ẩn badge, chạy offline
+  if(!window.supabase){ setBadge('⚠️ không tải được Supabase','bad'); return; }
+  try{ sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+  catch(e){ setBadge('⚠️ cấu hình sai','bad'); return; }
+  setBadge('⏳ đang tải…');
+  await pullCloud();
+  // realtime: máy khác sửa → tự cập nhật
+  sb.channel('mealmate-'+SYNC_CODE)
+    .on('postgres_changes',{event:'*',schema:'public',table:'mealmate',filter:'code=eq.'+SYNC_CODE},payload=>{
+      if(Date.now()-lastPushedAt<2500)return;          // bỏ qua thay đổi do chính mình vừa đẩy
+      const row=payload.new;
+      if(row&&Array.isArray(row.data)){
+        dishes=row.data; save(STORE_DISHES,dishes); renderList(); generate();
+        setBadge('✓ cập nhật từ máy khác','ok'); toast('☁️ Danh sách vừa được cập nhật từ thiết bị khác');
+      }
+    }).subscribe();
+}
+
+/* auto-generate first plan, then connect */
+generate();
+initCloud();
+</script>
+</body>
+</html>
