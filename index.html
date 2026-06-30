@@ -114,6 +114,9 @@
   .save{border:none; background:var(--ok); color:#fff; padding:13px 26px; border-radius:12px; font-weight:700; cursor:pointer; font-size:15px; font-family:inherit}
   .edit{border:none; background:var(--kho-bg); color:var(--kho); border-radius:8px; padding:6px 11px; cursor:pointer; font-weight:700; font-family:inherit; margin-right:6px}
   .recipe-btn{border:none; background:#fff4ec; color:var(--kho); border-radius:8px; padding:3px 8px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; margin-left:6px}
+  .recipe-chip{border:none; background:var(--canh-bg); color:#0b7a6c; border:1px solid var(--canh-bd); border-radius:999px; padding:4px 10px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; white-space:nowrap}
+  .recipe-chip:hover{background:#d8f2ec}
+  .no-recipe{color:#c9c0b5; font-size:12.5px}
   /* recipe modal */
   .modal{position:fixed; inset:0; background:rgba(38,33,28,.5); display:none; align-items:center; justify-content:center; z-index:100; padding:20px}
   .modal.show{display:flex}
@@ -134,6 +137,16 @@
   .del{border:none; background:#ffe3e3; color:var(--warn); border-radius:8px; padding:6px 11px; cursor:pointer; font-weight:700; font-family:inherit}
   .count{color:var(--muted); font-size:13px}
   .empty{text-align:center; color:var(--muted); padding:34px}
+  .tag.rau{background:#eef7e9; color:#3a8f2f}
+  .list-tools{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+  .search-input{flex:1; min-width:200px; padding:10px 14px; border:1.5px solid var(--line); border-radius:12px; font-size:14px; font-family:inherit}
+  .search-input:focus{outline:none; border-color:var(--accent2)}
+  .list-tools-right{display:flex; gap:8px; flex-wrap:wrap}
+  .favbtn{border:none; background:none; cursor:pointer; font-size:17px; line-height:1; padding:4px; filter:grayscale(1); opacity:.35}
+  .favbtn.on{filter:none; opacity:1}
+  .offbtn{border:1.5px solid var(--line); background:#fff; border-radius:8px; padding:5px 9px; cursor:pointer; font-weight:700; font-family:inherit; margin-right:6px; font-size:13px}
+  .offbtn.on{background:#ffe3e3; color:var(--warn); border-color:#ffc9c9}
+  tr.row-off td{opacity:.45}
 
   .cloud-badge{position:fixed; top:14px; right:14px; background:#fff; border:1px solid var(--line); box-shadow:var(--shadow-sm);
     padding:7px 13px; border-radius:999px; font-size:12.5px; font-weight:700; color:var(--muted); z-index:50}
@@ -181,17 +194,27 @@
           </div>
         </div>
         <div class="control">
+          <label>Số người ăn</label>
+          <input type="number" id="opt-servings" min="1" max="20" value="2">
+        </div>
+        <div class="control">
           <label class="switch"><input type="checkbox" id="opt-norepeat" checked> Không trùng món trong đợt</label>
+          <label class="switch"><input type="checkbox" id="opt-varyprotein" checked> Xoay vòng đạm (heo/gà/bò/cá…)</label>
         </div>
         <div class="control">
           <label class="switch"><input type="checkbox" id="opt-budget" checked> Giới hạn ngân sách/ngày</label>
           <input type="number" id="opt-budget-val" min="0" step="10000" value="120000">
+        </div>
+        <div class="control">
+          <label class="switch"><input type="checkbox" id="opt-rau"> Thêm món rau/xào mỗi ngày</label>
+          <label class="switch"><input type="checkbox" id="opt-rice" checked> Kèm cơm (thêm gạo)</label>
         </div>
       </div>
       <button class="bigbtn" id="btn-plan">🎲 Tạo thực đơn &amp; danh sách đi chợ</button>
     </div>
 
     <div id="plan-out"></div>
+    <div id="hist-out"></div>
   </section>
 
   <!-- ADD -->
@@ -207,16 +230,16 @@
           </div>
           <div class="field">
             <label>Loại *</label>
-            <select id="f-type"><option value="kho">Món khô (mặn)</option><option value="canh">Món canh</option></select>
+            <select id="f-type"><option value="kho">Món khô (mặn)</option><option value="canh">Món canh</option><option value="rau">Món rau / xào</option></select>
           </div>
           <div class="field">
             <label>Giá ước tính / 2 người (đ)</label>
             <input id="f-price" type="number" min="0" step="1000" placeholder="VD: 55000">
           </div>
           <div class="field full">
-            <label>Nguyên liệu chính</label>
+            <label>Nguyên liệu chính (cho 2 người)</label>
             <input id="f-ingredients" placeholder="VD: thịt gà 400 g, gừng 1 củ, hành tím 3 củ">
-            <span class="hint">Định dạng: <b>tên SỐ ĐƠNVỊ</b>, cách nhau bằng dấu phẩy. VD: <i>thịt bò 250 g, hành tây 1 củ</i></span>
+            <span class="hint">Định dạng: <b>tên SỐ ĐƠNVỊ</b>, cách nhau bằng dấu phẩy. Nhập cho <b>2 người</b> — app tự nhân theo số người ăn. VD: <i>thịt bò 250 g, hành tây 1 củ</i></span>
           </div>
           <div class="field"><label>Thời gian nấu (phút)</label><input id="f-time" type="number" min="0" placeholder="30"></div>
           <div class="field"><label>Độ khó</label><select id="f-difficulty"><option>Dễ</option><option>Trung bình</option><option>Khó</option></select></div>
@@ -246,12 +269,22 @@
           <button class="chip active" data-filter="all">Tất cả</button>
           <button class="chip" data-filter="kho">Món khô</button>
           <button class="chip" data-filter="canh">Món canh</button>
+          <button class="chip" data-filter="rau">Món rau</button>
+          <button class="chip" data-filter="fav">⭐ Yêu thích</button>
         </div>
         <span class="count" id="list-count"></span>
       </div>
+      <div class="list-tools">
+        <input id="list-search" class="search-input" type="search" placeholder="🔍 Tìm theo tên món hoặc nguyên liệu…">
+        <div class="list-tools-right">
+          <button class="btn-ghost" id="btn-export">⬇️ Xuất dữ liệu</button>
+          <button class="btn-ghost" id="btn-import">⬆️ Nhập dữ liệu</button>
+          <input type="file" id="import-file" accept="application/json,.json" style="display:none">
+        </div>
+      </div>
       <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Tên món</th><th>Loại</th><th>Nguyên liệu</th><th>Phút</th><th>Độ khó</th><th>Giá</th><th>Cal</th><th></th></tr></thead>
+          <thead><tr><th>Tên món</th><th>Loại</th><th>Công thức</th><th>Nguyên liệu</th><th>Phút</th><th>Độ khó</th><th>Giá</th><th>Cal</th><th></th></tr></thead>
           <tbody id="list-body"></tbody>
         </table>
       </div>
@@ -269,13 +302,21 @@
 /* ============================================================
    CẤU HÌNH ĐỒNG BỘ — dán thông tin Supabase của bạn vào đây 1 lần
    (Project Settings → API). anon key là khóa công khai, an toàn.
+
+   ⚠️ BẢO MẬT (nên làm):
+   1) Bật Row Level Security (RLS) cho bảng "mealmate" trong Supabase,
+      chỉ cho phép thao tác trên đúng dòng có cột code = SYNC_CODE.
+   2) Đổi SYNC_CODE thành một chuỗi KHÓ ĐOÁN (vd 'bepnha-9f3k2x'),
+      vì bất kỳ ai biết mã này đều đọc/ghi được dữ liệu của bạn.
+      (Lưu ý: đổi mã sẽ tạo "tủ" mới — dữ liệu cũ cần nhập lại.)
    ============================================================ */
 const SUPABASE_URL  = 'https://kkitgonaieaaeqnbvppy.supabase.co';   // <-- dán Project URL
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXRnb25haWVhYWVxbmJ2cHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2OTY4MDgsImV4cCI6MjA5ODI3MjgwOH0.PCJBn7_f7hG6ZMfy23-70tA8_vEBpXhxwd9StHpVsMs';               // <-- dán anon public key
-const SYNC_CODE     = 'bep-nha';                            // tên "tủ" dữ liệu, đổi tùy ý
+const SYNC_CODE     = 'bep-nha';                            // ⚠️ đổi thành chuỗi khó đoán (xem ghi chú trên)
 
 const STORE_DISHES='mealmate.dishes.v2';
 const STORE_OPTS='mealmate.opts.v2';
+const STORE_HISTORY='mealmate.history.v1';
 
 /* ingredient format: [name, qty, unit] for 2 servings */
 const SAMPLE=[
@@ -362,20 +403,33 @@ function backfillRecipes(){
   return changed;
 }
 
+function normalizeDishes(){
+  (dishes||[]).forEach(d=>{
+    if(typeof d.fav!=='boolean')d.fav=false;
+    if(typeof d.off!=='boolean')d.off=false;
+  });
+}
 let dishes=load(STORE_DISHES,null);
 if(!dishes){
-  dishes=SAMPLE.map((s,i)=>({id:'d'+(i+1),name:s[0],type:s[1],ing:s[2],time:s[3],difficulty:s[4],price:s[5],calories:s[6],recipe:s[7]||''}));
+  dishes=SAMPLE.map((s,i)=>({id:'d'+(i+1),name:s[0],type:s[1],ing:s[2],time:s[3],difficulty:s[4],price:s[5],calories:s[6],recipe:s[7]||'',fav:false,off:false}));
   save(STORE_DISHES,dishes);
-} else if(backfillRecipes()){
-  save(STORE_DISHES,dishes);
+} else {
+  const changed=backfillRecipes(); normalizeDishes(); if(changed)save(STORE_DISHES,dishes);
 }
-let opts=load(STORE_OPTS,{numdays:5,norepeat:true,budgetOn:true,budget:120000});
+normalizeDishes();
+let history=load(STORE_HISTORY,[]);
+const DEFAULT_OPTS={numdays:5,servings:2,norepeat:true,varyProtein:true,budgetOn:true,budget:120000,rauOn:false,riceOn:true};
+let opts=Object.assign({},DEFAULT_OPTS,load(STORE_OPTS,{}));
 
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function fmt(n){return Math.round(n||0).toLocaleString('vi-VN')+'đ'}
 function ingText(arr){return (arr||[]).map(x=>`${x[0]} ${trimNum(x[1])} ${x[2]}`).join(', ')}
-function trimNum(n){return Number.isInteger(n)?n:n.toString().replace(/\.?0+$/,'')}
+function ingTextScaled(arr,sf){return (arr||[]).map(x=>`${x[0]} ${trimNum((x[1]||0)*sf)} ${x[2]}`).join(', ')}
+function trimNum(n){return Number.isInteger(n)?n:Number((+n).toFixed(2)).toString()}
+function servingFactor(){return Math.max(1,+elServ.value||2)/2}
+function typeLabel(t){return t==='kho'?'Khô':t==='canh'?'Canh':'Rau'}
+function fmtDate(iso){try{return new Date(iso).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})}catch(e){return iso}}
 
 let toastTimer;
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2000)}
@@ -387,19 +441,18 @@ function switchTab(name){
   document.getElementById('panel-'+name).classList.add('active');
   if(name==='list')renderList();
 }
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); document.getElementById('panel-'+b.dataset.tab).classList.add('active');
-  if(b.dataset.tab==='list') renderList();
-});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 
 /* ---- options ---- */
-const elNum=document.getElementById('opt-numdays'),elNR=document.getElementById('opt-norepeat'),
-  elBO=document.getElementById('opt-budget'),elB=document.getElementById('opt-budget-val');
-elNum.value=opts.numdays; elNR.checked=opts.norepeat; elBO.checked=opts.budgetOn; elB.value=opts.budget;
-function syncOpts(){opts={numdays:+elNum.value,norepeat:elNR.checked,budgetOn:elBO.checked,budget:+elB.value};save(STORE_OPTS,opts)}
-[elNum,elNR,elBO,elB].forEach(e=>e.addEventListener('change',syncOpts));
+const elNum=document.getElementById('opt-numdays'),elServ=document.getElementById('opt-servings'),
+  elNR=document.getElementById('opt-norepeat'),elVP=document.getElementById('opt-varyprotein'),
+  elBO=document.getElementById('opt-budget'),elB=document.getElementById('opt-budget-val'),
+  elRau=document.getElementById('opt-rau'),elRice=document.getElementById('opt-rice');
+elNum.value=opts.numdays; elServ.value=opts.servings; elNR.checked=opts.norepeat; elVP.checked=opts.varyProtein;
+elBO.checked=opts.budgetOn; elB.value=opts.budget; elRau.checked=opts.rauOn; elRice.checked=opts.riceOn;
+function syncOpts(){opts={numdays:+elNum.value,servings:+elServ.value||2,norepeat:elNR.checked,varyProtein:elVP.checked,
+  budgetOn:elBO.checked,budget:+elB.value,rauOn:elRau.checked,riceOn:elRice.checked};save(STORE_OPTS,opts)}
+[elNum,elServ,elNR,elVP,elBO,elB,elRau,elRice].forEach(e=>e.addEventListener('change',syncOpts));
 document.querySelectorAll('.days-quick .chip').forEach(c=>c.onclick=()=>{
   document.querySelectorAll('.days-quick .chip').forEach(x=>x.classList.remove('active'));
   c.classList.add('active'); elNum.value=c.dataset.d; syncOpts();
@@ -410,47 +463,85 @@ elNum.addEventListener('input',()=>document.querySelectorAll('.days-quick .chip'
 let currentPlan=[];
 function rand(a){return a[Math.floor(Math.random()*a.length)]}
 
-function pickDay(usedKho,usedCanh){
-  const budgetOn=elBO.checked,budget=+elB.value;
-  let kho=dishes.filter(d=>d.type==='kho'),canh=dishes.filter(d=>d.type==='canh');
-  let kp=elNR.checked?kho.filter(d=>!usedKho.has(d.id)):kho;
-  let cp=elNR.checked?canh.filter(d=>!usedCanh.has(d.id)):canh;
-  if(!kp.length)kp=kho; if(!cp.length)cp=canh;
+/* phân nhóm đạm cho món khô để xoay vòng tránh ăn trùng */
+const PROTEIN_KW=[
+  ['Gà',['cánh gà','đùi gà','ức gà','thịt gà','gà ']],
+  ['Bò',['thịt bò','bò ']],
+  ['Cá/Hải sản',['cá ','cá r','cá b','cá t','cá d','cá n','basa','rô phi','diêu hồng','nục','tôm','mực']],
+  ['Trứng',['trứng']],
+  ['Heo',['ba chỉ','nạc vai','thăn heo','thịt heo','sườn','thịt viên']],
+];
+function proteinOf(d){
+  if(!d||d.type!=='kho')return null;
+  const hay=(' '+d.name+' '+(d.ing||[]).map(x=>x[0]).join(' ')+' ').toLowerCase();
+  for(const [g,kws] of PROTEIN_KW){ if(kws.some(k=>hay.includes(k)))return g; }
+  return 'Khác';
+}
+/* loại bỏ món đã ẩn; nếu lỡ ẩn hết thì dùng lại toàn bộ */
+function activePool(type){
+  let pool=dishes.filter(d=>d.type===type && !d.off);
+  if(!pool.length)pool=dishes.filter(d=>d.type===type);
+  return pool;
+}
+/* món yêu thích xuất hiện 2 lần để tăng xác suất được chọn */
+function weighted(pool){const w=[];pool.forEach(d=>{w.push(d);if(d.fav)w.push(d)});return w}
+function weightedPairs(combos){const w=[];combos.forEach(p=>{w.push(p);if(p[0].fav||p[1].fav)w.push(p)});return w}
+
+function pickDay(usedKho,usedCanh,usedRau,lastProtein){
+  const sf=servingFactor(),budgetOn=elBO.checked,budget=+elB.value,vary=elVP.checked,rauOn=elRau.checked;
+  const khoAll=activePool('kho'),canhAll=activePool('canh'),rauAll=activePool('rau');
+  let kp=elNR.checked?khoAll.filter(d=>!usedKho.has(d.id)):khoAll.slice();
+  let cp=elNR.checked?canhAll.filter(d=>!usedCanh.has(d.id)):canhAll.slice();
+  if(!kp.length)kp=khoAll; if(!cp.length)cp=canhAll;
   if(!kp.length||!cp.length)return null;
-  let k,c,over=false;
+  // xoay vòng đạm: ưu tiên nhóm đạm khác hôm trước
+  let kpv=kp;
+  if(vary&&lastProtein){const alt=kp.filter(d=>proteinOf(d)!==lastProtein); if(alt.length)kpv=alt;}
+  let k=null,c=null,over=false;
   if(budgetOn&&budget>0){
     const combos=[];
-    for(const x of kp)for(const y of cp)if((x.price||0)+(y.price||0)<=budget)combos.push([x,y]);
-    if(combos.length){const ch=rand(combos);k=ch[0];c=ch[1];}
+    for(const x of kpv)for(const y of cp)if(((x.price||0)+(y.price||0))*sf<=budget)combos.push([x,y]);
+    if(combos.length){const ch=rand(weightedPairs(combos));k=ch[0];c=ch[1];}
   }
-  if(!k){k=rand(kp);c=rand(cp);over=budgetOn&&budget>0&&((k.price||0)+(c.price||0))>budget;}
-  return {kho:k,canh:c,over};
+  if(!k){k=rand(weighted(kpv));c=rand(weighted(cp));over=budgetOn&&budget>0&&(((k.price||0)+(c.price||0))*sf>budget);}
+  let r=null;
+  if(rauOn&&rauAll.length){
+    let rp=elNR.checked?rauAll.filter(d=>!usedRau.has(d.id)):rauAll; if(!rp.length)rp=rauAll;
+    r=rand(weighted(rp));
+  }
+  return {kho:k,canh:c,rau:r,over};
 }
 
 function generate(){
   const n=Math.max(1,Math.min(14,+elNum.value||1));
-  const usedKho=new Set(),usedCanh=new Set();
-  currentPlan=[];
+  const usedKho=new Set(),usedCanh=new Set(),usedRau=new Set();
+  currentPlan=[]; let lastProtein=null;
   for(let i=0;i<n;i++){
-    const day=pickDay(usedKho,usedCanh);
+    const day=pickDay(usedKho,usedCanh,usedRau,lastProtein);
     if(!day){toast('Chưa đủ món để tạo thực đơn');return}
-    usedKho.add(day.kho.id); usedCanh.add(day.canh.id);
+    usedKho.add(day.kho.id); usedCanh.add(day.canh.id); if(day.rau)usedRau.add(day.rau.id);
+    lastProtein=proteinOf(day.kho);
     currentPlan.push(day);
   }
   renderPlan();
 }
 function rerollDay(i){
-  const usedKho=new Set(),usedCanh=new Set();
-  currentPlan.forEach((d,j)=>{if(j!==i){usedKho.add(d.kho.id);usedCanh.add(d.canh.id)}});
-  const day=pickDay(usedKho,usedCanh);
+  const usedKho=new Set(),usedCanh=new Set(),usedRau=new Set();
+  currentPlan.forEach((d,j)=>{if(j!==i){usedKho.add(d.kho.id);usedCanh.add(d.canh.id);if(d.rau)usedRau.add(d.rau.id)}});
+  const lastProtein=i>0?proteinOf(currentPlan[i-1].kho):null;
+  const day=pickDay(usedKho,usedCanh,usedRau,lastProtein);
   if(day){currentPlan[i]=day;renderPlan()}
 }
 
 function renderPlan(){
   if(!currentPlan.length){document.getElementById('plan-out').innerHTML='';return}
-  let total=0,cal=0;
+  const sf=servingFactor(),ppl=+elServ.value||2;
+  let total=0,calBase=0;
+  const miniRow=(icon,dish,cls,label)=>`<div class="mini"><span class="ic">${icon}</span><div><div class="mn">${dish.name}<span class="tag ${cls}">${label}</span><button class="recipe-btn" onclick="showRecipe('${dish.id}')" title="Xem công thức">📖</button></div><div class="md">${dish.time} phút · ${fmt((dish.price||0)*sf)}</div></div></div>`;
   const days=currentPlan.map((d,i)=>{
-    const cost=(d.kho.price||0)+(d.canh.price||0); total+=cost; cal+=(d.kho.calories||0)+(d.canh.calories||0);
+    const list=[d.kho,d.canh,...(d.rau?[d.rau]:[])];
+    const cost=list.reduce((s,x)=>s+(x.price||0),0)*sf; total+=cost;
+    calBase+=list.reduce((s,x)=>s+(x.calories||0),0);
     return `<div class="day">
       <div class="day-head">
         <span class="day-title">Ngày ${i+1}</span>
@@ -459,26 +550,28 @@ function renderPlan(){
           <button class="reroll" title="Đổi món ngày này" onclick="rerollDay(${i})">🔄</button>
         </span>
       </div>
-      <div class="mini"><span class="ic">🥩</span><div><div class="mn">${d.kho.name}<span class="tag kho">khô</span><button class="recipe-btn" onclick="showRecipe('${d.kho.id}')" title="Xem công thức">📖</button></div><div class="md">${d.kho.time} phút · ${fmt(d.kho.price)}</div></div></div>
-      <div class="mini"><span class="ic">🥬</span><div><div class="mn">${d.canh.name}<span class="tag canh">canh</span><button class="recipe-btn" onclick="showRecipe('${d.canh.id}')" title="Xem công thức">📖</button></div><div class="md">${d.canh.time} phút · ${fmt(d.canh.price)}</div></div></div>
+      ${miniRow('🥩',d.kho,'kho','khô')}
+      ${miniRow('🥬',d.canh,'canh','canh')}
+      ${d.rau?miniRow('🥗',d.rau,'rau','rau'):''}
     </div>`;
   }).join('');
 
   const shop=buildShopping(currentPlan);
   document.getElementById('plan-out').innerHTML=`
     <div class="card">
-      <h2>🍽️ Thực đơn ${currentPlan.length} ngày</h2>
+      <h2>🍽️ Thực đơn ${currentPlan.length} ngày · ${ppl} người</h2>
       <div class="plan-grid">${days}</div>
       <div class="summary">
         <div class="stat"><div class="k">Tổng chi phí</div><div class="v">${fmt(total)}</div></div>
         <div class="stat"><div class="k">Trung bình / ngày</div><div class="v">${fmt(total/currentPlan.length)}</div></div>
-        <div class="stat"><div class="k">Calo / ngày (ước tính)</div><div class="v">${Math.round(cal/currentPlan.length)}</div></div>
+        <div class="stat"><div class="k">Calo / người / ngày</div><div class="v">${Math.round(calBase/currentPlan.length/2)}</div></div>
       </div>
     </div>
     <div class="card" id="shop-card">
       <div class="shop-head">
-        <div><h2>🛒 Danh sách đi chợ</h2><p class="sub" style="margin:0">Đã gộp nguyên liệu cho cả ${currentPlan.length} ngày — tích vào khi mua xong.</p></div>
+        <div><h2>🛒 Danh sách đi chợ</h2><p class="sub" style="margin:0">Đã gộp nguyên liệu cho cả ${currentPlan.length} ngày (${ppl} người) — tích vào khi mua xong.</p></div>
         <div class="shop-actions">
+          <button class="btn-ghost" onclick="saveCurrentPlan()">📌 Lưu đợt</button>
           <button class="btn-ghost" onclick="copyShop()">📋 Sao chép</button>
           <button class="btn-ghost" onclick="window.print()">🖨️ In</button>
         </div>
@@ -490,9 +583,10 @@ function renderPlan(){
 }
 
 const CATS=[
-  {key:'thit',label:'🥩 Thịt · Cá · Trứng',kw:['thịt','sườn','gà','bò','cá','trứng','tôm']},
+  {key:'thit',label:'🥩 Thịt · Cá · Trứng',kw:['thịt','sườn','gà','bò','cá','trứng','tôm','mực']},
   {key:'nam',label:'🍄 Nấm',kw:['nấm']},
   {key:'rau',label:'🥬 Rau · Củ · Quả',kw:['cải','rau','bí','bầu','su su','khoai','cà rốt','củ cải','bắp cải','mồng tơi','dền','ngót','thảo','bông cải','cần tây','hành tây','ớt chuông','cà chua','dứa','đậu bắp','giá đỗ']},
+  {key:'tinhbot',label:'🍚 Gạo · Tinh bột',kw:['gạo','bún','miến','phở','nui','mì ']},
   {key:'giavi',label:'🧂 Gia vị · Khác',kw:[]},
 ];
 function catOf(name){
@@ -500,16 +594,34 @@ function catOf(name){
   for(const c of CATS){if(c.kw.some(k=>n.includes(k)))return c.key}
   return 'giavi';
 }
+/* gộp đơn vị: quy về g/ml để cộng dồn rồi hiển thị gọn (kg, lít) */
+function normUnit(q,u){
+  u=(u||'').trim().toLowerCase();
+  if(u==='kg')return [q*1000,'g'];
+  if(u==='lít'||u==='l')return [q*1000,'ml'];
+  return [q,u];
+}
+function fmtQty(q,u){
+  if(u==='g'&&q>=1000)return trimNum(q/1000)+' kg';
+  if(u==='ml'&&q>=1000)return trimNum(q/1000)+' lít';
+  return trimNum(q)+' '+u;
+}
+function addIng(map,nm,q,u){
+  const r=normUnit(q,u); q=r[0]; u=r[1];
+  const key=nm.trim().toLowerCase()+'|'+u;
+  if(!map[key])map[key]={name:nm.trim(),unit:u,qty:0};
+  map[key].qty+=q;
+}
 function buildShopping(plan){
-  const map={}; // key = tên (chuẩn hóa) -> {name, units:{unit:qty}}
-  plan.forEach(d=>[d.kho,d.canh].forEach(dish=>(dish.ing||[]).forEach(([nm,q,u])=>{
-    const key=nm.trim().toLowerCase();
-    if(!map[key])map[key]={name:nm.trim(),units:{}};
-    map[key].units[u]=(map[key].units[u]||0)+q;
-  })));
-  const qtyStr=units=>Object.entries(units).map(([u,q])=>`${trimNum(q)} ${u}`).join(' + ');
+  const sf=servingFactor(),ppl=+elServ.value||2;
+  const map={};
+  plan.forEach(d=>[d.kho,d.canh,d.rau].filter(Boolean).forEach(dish=>
+    (dish.ing||[]).forEach(([nm,q,u])=>addIng(map,nm,(q||0)*sf,u))));
+  if(elRice.checked){ // ~75 g gạo / người / ngày
+    addIng(map,'gạo',Math.round(75*ppl*plan.length),'g');
+  }
   const items=Object.values(map);
-  let html='',text='DANH SÁCH ĐI CHỢ ('+plan.length+' ngày)\n';
+  let html='',text='DANH SÁCH ĐI CHỢ ('+plan.length+' ngày · '+ppl+' người)\n';
   CATS.forEach(cat=>{
     const list=items.filter(it=>catOf(it.name)===cat.key).sort((a,b)=>a.name.localeCompare(b.name,'vi'));
     if(!list.length)return;
@@ -517,7 +629,7 @@ function buildShopping(plan){
     html+=`<div class="shop-cat"><h3>${cat.label}</h3>`;
     text+='\n'+cat.label+'\n';
     list.forEach(it=>{
-      const qt=showQty?qtyStr(it.units):'';
+      const qt=showQty?fmtQty(it.qty,it.unit):'';
       html+=`<label class="shop-item"><input type="checkbox" onchange="this.closest('.shop-item').classList.toggle('done',this.checked)"><span class="nm">${it.name}</span><span class="qt">${qt}</span></label>`;
       text+=`  - ${it.name}${qt?': '+qt:''}\n`;
     });
@@ -526,6 +638,45 @@ function buildShopping(plan){
   return {html,text};
 }
 function copyShop(){navigator.clipboard.writeText(window._shopText||'').then(()=>toast('✅ Đã sao chép danh sách'))}
+
+/* ---- lịch sử & chi tiêu (lưu trên máy này) ---- */
+function saveCurrentPlan(){
+  if(!currentPlan.length){toast('Chưa có thực đơn để lưu');return}
+  const sf=servingFactor();
+  const total=currentPlan.reduce((s,d)=>s+[d.kho,d.canh,d.rau].filter(Boolean).reduce((a,x)=>a+(x.price||0),0)*sf,0);
+  history.unshift({id:'h'+Date.now(),date:new Date().toISOString(),days:currentPlan.length,servings:+elServ.value||2,total,
+    dishes:currentPlan.map(d=>[d.kho.name,d.canh.name,...(d.rau?[d.rau.name]:[])].join(' + ')),
+    plan:JSON.parse(JSON.stringify(currentPlan))});   // lưu cả công thức để xem lại sau
+  history=history.slice(0,30); save(STORE_HISTORY,history); renderHistory(); toast('📌 Đã lưu đợt chợ này');
+}
+function delHist(id){history=history.filter(h=>h.id!==id);save(STORE_HISTORY,history);renderHistory()}
+function renderHistory(){
+  const el=document.getElementById('hist-out'); if(!el)return;
+  if(!history.length){el.innerHTML='';return}
+  const now=new Date();
+  const monthTotal=history.filter(h=>{const d=new Date(h.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()})
+    .reduce((s,h)=>s+(h.total||0),0);
+  el.innerHTML=`<div class="card">
+    <div class="shop-head"><div><h2>📒 Lịch sử &amp; chi tiêu</h2><p class="sub" style="margin:0">Các đợt thực đơn bạn đã lưu (chỉ lưu trên máy này).</p></div></div>
+    <div class="summary">
+      <div class="stat"><div class="k">Chi tiêu tháng này</div><div class="v">${fmt(monthTotal)}</div></div>
+      <div class="stat"><div class="k">Số đợt đã lưu</div><div class="v">${history.length}</div></div>
+    </div>
+    <div style="margin-top:14px">${history.map(h=>`<div class="shop-item" style="align-items:flex-start">
+      <div style="flex:1"><b>${fmtDate(h.date)}</b> · ${h.days} ngày · ${h.servings} người
+        <div class="md" style="font-size:12px;color:var(--muted);margin-top:4px">${(h.dishes||[]).join(' • ')}</div></div>
+      <span class="qt">${fmt(h.total)}</span>
+      ${h.plan?`<button class="recipe-chip" onclick="viewHistPlan('${h.id}')" title="Xem lại thực đơn &amp; công thức">👁️ Xem lại</button>`:''}
+      <button class="del" onclick="delHist('${h.id}')">Xóa</button></div>`).join('')}</div>
+  </div>`;
+}
+function viewHistPlan(id){
+  const h=history.find(x=>x.id===id); if(!h||!h.plan)return;
+  currentPlan=JSON.parse(JSON.stringify(h.plan));
+  if(h.servings){elServ.value=h.servings;syncOpts()}
+  renderPlan();
+  toast('👁️ Đang xem lại đợt '+fmtDate(h.date)+' — bấm 📖 để xem cách nấu');
+}
 
 document.getElementById('btn-plan').onclick=generate;
 
@@ -577,21 +728,26 @@ document.getElementById('add-form').addEventListener('submit',e=>{
     Object.assign(dishes.find(x=>x.id===editingId),payload);
     toast('✅ Đã cập nhật "'+name+'"'); persistDishes(); resetForm(); switchTab('list');
   } else {
-    dishes.push({id:'d'+Date.now(),...payload});
+    dishes.push({id:'d'+Date.now(),...payload,fav:false,off:false});
     toast('✅ Đã thêm "'+name+'"'); persistDishes(); resetForm();
   }
 });
 
 /* ---- recipe modal ---- */
+function findDish(id){
+  for(const day of currentPlan){for(const x of [day.kho,day.canh,day.rau]){if(x&&x.id===id)return x}}
+  return dishes.find(x=>x.id===id)||null;
+}
 function showRecipe(id){
-  const d=dishes.find(x=>x.id===id); if(!d)return;
+  const d=findDish(id); if(!d)return;
   const steps=(d.recipe||'').trim();
+  const sf=servingFactor(),ppl=+elServ.value||2;
   document.getElementById('recipe-box').innerHTML=`
     <button class="modal-close" onclick="closeRecipe()">✕</button>
-    <h2>${d.name}<span class="tag ${d.type}">${d.type==='kho'?'khô':'canh'}</span></h2>
-    <div class="modal-meta">⏱️ ${d.time||'?'} phút · 📊 ${d.difficulty||'-'} · 💰 ${fmt(d.price)}${d.calories?' · 🔥 '+d.calories+' cal':''}</div>
-    <h4>🧺 Nguyên liệu (2 người)</h4>
-    <div class="recipe-ings">${ingText(d.ing)||'—'}</div>
+    <h2>${d.name}<span class="tag ${d.type}">${typeLabel(d.type)}</span></h2>
+    <div class="modal-meta">⏱️ ${d.time||'?'} phút · 📊 ${d.difficulty||'-'} · 💰 ${fmt((d.price||0)*sf)}${d.calories?' · 🔥 '+Math.round(d.calories/2)+' cal/người':''}</div>
+    <h4>🧺 Nguyên liệu (${ppl} người)</h4>
+    <div class="recipe-ings">${ingTextScaled(d.ing,sf)||'—'}</div>
     <h4>👩‍🍳 Cách làm</h4>
     <div class="recipe-steps">${steps?steps.replace(/</g,'&lt;'):'<i style="color:var(--muted)">Chưa có công thức. Bấm “Sửa” ở Danh sách món để thêm.</i>'}</div>`;
   document.getElementById('recipe-modal').classList.add('show');
@@ -601,28 +757,70 @@ document.getElementById('recipe-modal').onclick=e=>{if(e.target.id==='recipe-mod
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeRecipe()});
 
 /* ---- list ---- */
-let listFilter='all';
-document.querySelectorAll('#panel-list .chip').forEach(p=>p.onclick=()=>{
-  document.querySelectorAll('#panel-list .chip').forEach(x=>x.classList.remove('active'));
+let listFilter='all',listSearch='';
+const TYPE_ORDER={kho:0,canh:1,rau:2};
+document.querySelectorAll('#panel-list .filter-pills .chip').forEach(p=>p.onclick=()=>{
+  document.querySelectorAll('#panel-list .filter-pills .chip').forEach(x=>x.classList.remove('active'));
   p.classList.add('active'); listFilter=p.dataset.filter; renderList();
 });
+document.getElementById('list-search').addEventListener('input',e=>{listSearch=e.target.value;renderList()});
+function toggleFav(id){const d=dishes.find(x=>x.id===id);if(!d)return;d.fav=!d.fav;persistDishes();renderList()}
+function toggleOff(id){const d=dishes.find(x=>x.id===id);if(!d)return;d.off=!d.off;persistDishes();renderList()}
 function renderList(){
   let rows=dishes.slice();
-  if(listFilter!=='all')rows=rows.filter(d=>d.type===listFilter);
-  rows.sort((a,b)=>a.type===b.type?a.name.localeCompare(b.name,'vi'):(a.type==='kho'?-1:1));
+  if(listFilter==='fav')rows=rows.filter(d=>d.fav);
+  else if(listFilter!=='all')rows=rows.filter(d=>d.type===listFilter);
+  const q=listSearch.trim().toLowerCase();
+  if(q)rows=rows.filter(d=>(d.name||'').toLowerCase().includes(q)||ingText(d.ing).toLowerCase().includes(q));
+  rows.sort((a,b)=>a.type===b.type?a.name.localeCompare(b.name,'vi'):(TYPE_ORDER[a.type]-TYPE_ORDER[b.type]));
   document.getElementById('list-count').textContent=
-    `${dishes.filter(d=>d.type==='kho').length} món khô · ${dishes.filter(d=>d.type==='canh').length} món canh`;
+    `${dishes.filter(d=>d.type==='kho').length} khô · ${dishes.filter(d=>d.type==='canh').length} canh · ${dishes.filter(d=>d.type==='rau').length} rau`;
   const body=document.getElementById('list-body');
-  if(!rows.length){body.innerHTML='<tr><td colspan="8" class="empty">Chưa có món nào</td></tr>';return}
-  body.innerHTML=rows.map(d=>`<tr>
-    <td><b>${d.name}</b>${d.recipe?`<button class="recipe-btn" onclick="showRecipe('${d.id}')" title="Xem công thức">📖</button>`:''}</td>
-    <td><span class="tag ${d.type}">${d.type==='kho'?'Khô':'Canh'}</span></td>
+  if(!rows.length){body.innerHTML='<tr><td colspan="9" class="empty">Không có món nào khớp</td></tr>';return}
+  body.innerHTML=rows.map(d=>`<tr class="${d.off?'row-off':''}">
+    <td><button class="favbtn ${d.fav?'on':''}" onclick="toggleFav('${d.id}')" title="Đánh dấu yêu thích">⭐</button> <b>${d.name}</b></td>
+    <td><span class="tag ${d.type}">${typeLabel(d.type)}</span></td>
+    <td>${d.recipe?`<button class="recipe-chip" onclick="showRecipe('${d.id}')" title="Xem công thức">📖 Có công thức</button>`:`<span class="no-recipe">— chưa có</span>`}</td>
     <td style="color:var(--muted);font-size:13px">${ingText(d.ing)||'-'}</td>
     <td>${d.time||'-'}</td><td>${d.difficulty||'-'}</td>
     <td>${d.price?fmt(d.price):'-'}</td><td>${d.calories||'-'}</td>
-    <td style="white-space:nowrap"><button class="edit" onclick="startEdit('${d.id}')">Sửa</button><button class="del" data-id="${d.id}">Xóa</button></td></tr>`).join('');
-  body.querySelectorAll('.del').forEach(b=>b.onclick=()=>{dishes=dishes.filter(x=>x.id!==b.dataset.id);persistDishes();renderList()});
+    <td style="white-space:nowrap"><button class="offbtn ${d.off?'on':''}" onclick="toggleOff('${d.id}')" title="${d.off?'Đang loại khỏi random — bấm để bật lại':'Loại món này khỏi random'}">${d.off?'🚫 Đã ẩn':'Random'}</button><button class="edit" onclick="startEdit('${d.id}')">Sửa</button><button class="del" data-id="${d.id}">Xóa</button></td></tr>`).join('');
+  body.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+    const d=dishes.find(x=>x.id===b.dataset.id);
+    if(!confirm('Xóa món "'+(d?d.name:'')+'"? Thao tác này không thể hoàn tác.'))return;
+    dishes=dishes.filter(x=>x.id!==b.dataset.id);persistDishes();renderList();
+  });
 }
+
+/* ---- xuất / nhập dữ liệu (sao lưu) ---- */
+function exportData(){
+  const payload={app:'MealMate',version:2,exportedAt:new Date().toISOString(),dishes};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='mealmate-mon-an.json'; a.click(); URL.revokeObjectURL(a.href);
+  toast('✅ Đã xuất '+dishes.length+' món');
+}
+document.getElementById('btn-export').onclick=exportData;
+document.getElementById('btn-import').onclick=()=>document.getElementById('import-file').click();
+document.getElementById('import-file').onchange=e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const obj=JSON.parse(r.result);
+      const arr=Array.isArray(obj)?obj:obj.dishes;
+      if(!Array.isArray(arr)||!arr.length)throw 0;
+      if(!confirm('Nhập '+arr.length+' món? Việc này sẽ THAY THẾ toàn bộ danh sách hiện tại.')){e.target.value='';return}
+      dishes=arr.map((d,i)=>({id:d.id||('d'+Date.now()+i),name:d.name||'(không tên)',type:d.type||'kho',
+        ing:Array.isArray(d.ing)?d.ing:[],time:d.time||0,difficulty:d.difficulty||'Dễ',
+        price:d.price||0,calories:d.calories||0,recipe:d.recipe||'',fav:!!d.fav,off:!!d.off}));
+      backfillRecipes(); normalizeDishes(); persistDishes(); renderList(); generate();
+      toast('✅ Đã nhập '+dishes.length+' món');
+    }catch(err){toast('⚠️ File không hợp lệ')}
+    finally{e.target.value=''}
+  };
+  r.readAsText(file);
+};
 
 /* ================= ĐỒNG BỘ ĐA THIẾT BỊ (Supabase) ================= */
 let sb=null, pushTimer=null, lastPushedAt=0;
@@ -648,7 +846,7 @@ async function pullCloud(){
   const {data,error}=await sb.from('mealmate').select('data').eq('code',SYNC_CODE).maybeSingle();
   if(error){ setBadge('⚠️ lỗi tải','bad'); console.error(error); return; }
   if(data&&Array.isArray(data.data)){
-    dishes=data.data; const changed=backfillRecipes(); save(STORE_DISHES,dishes); renderList(); generate();
+    dishes=data.data; const changed=backfillRecipes(); normalizeDishes(); save(STORE_DISHES,dishes); renderList(); generate();
     setBadge('✓ đã đồng bộ','ok');
     if(changed) pushCloud();   // lưu lại công thức vừa điền lên cloud
   } else {
@@ -670,7 +868,7 @@ async function initCloud(){
       if(Date.now()-lastPushedAt<2500)return;          // bỏ qua thay đổi do chính mình vừa đẩy
       const row=payload.new;
       if(row&&Array.isArray(row.data)){
-        dishes=row.data; save(STORE_DISHES,dishes); renderList(); generate();
+        dishes=row.data; normalizeDishes(); save(STORE_DISHES,dishes); renderList(); generate();
         setBadge('✓ cập nhật từ máy khác','ok'); toast('☁️ Danh sách vừa được cập nhật từ thiết bị khác');
       }
     }).subscribe();
@@ -678,6 +876,7 @@ async function initCloud(){
 
 /* auto-generate first plan, then connect */
 generate();
+renderHistory();
 initCloud();
 </script>
 </body>
