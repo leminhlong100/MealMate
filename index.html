@@ -243,7 +243,6 @@
           </div>
           <div class="field"><label>Thời gian nấu (phút)</label><input id="f-time" type="number" min="0" placeholder="30"></div>
           <div class="field"><label>Độ khó</label><select id="f-difficulty"><option>Dễ</option><option>Trung bình</option><option>Khó</option></select></div>
-          <div class="field"><label>Calories (tùy chọn)</label><input id="f-calories" type="number" min="0" placeholder="350"></div>
           <div class="field full">
             <label>Công thức nấu (tùy chọn)</label>
             <textarea id="f-recipe" rows="6" placeholder="Mỗi bước một dòng. VD:
@@ -284,7 +283,7 @@
       </div>
       <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Tên món</th><th>Loại</th><th>Công thức</th><th>Nguyên liệu</th><th>Phút</th><th>Độ khó</th><th>Giá</th><th>Cal</th><th></th></tr></thead>
+          <thead><tr><th>Tên món</th><th>Loại</th><th>Công thức</th><th>Nguyên liệu</th><th>Phút</th><th>Độ khó</th><th>Giá</th><th></th></tr></thead>
           <tbody id="list-body"></tbody>
         </table>
       </div>
@@ -390,6 +389,16 @@ const SAMPLE=[
  ['Canh bắp cải','canh',[['bắp cải',0.5,'cây']],18,'Dễ',17000,85,'1. Bắp cải thái sợi.\n2. Nước sôi nêm gia vị, cho bắp cải vào.\n3. Nấu mềm 5 phút, rắc hành.'],
  ['Canh bí đỏ cà rốt','canh',[['bí đỏ',400,'g'],['cà rốt',1,'củ']],22,'Dễ',24000,120,'1. Bí đỏ, cà rốt gọt vỏ cắt miếng.\n2. Ninh mềm trong nước.\n3. Nêm gia vị, có thể tán cho sánh.'],
  ['Canh bầu nấu gừng','canh',[['bầu',1,'trái'],['gừng',0.5,'củ']],18,'Dễ',18000,85,'1. Bầu gọt vỏ thái lát, gừng đập dập.\n2. Nước sôi cho gừng, bầu vào.\n3. Nấu mềm, nêm vừa, rắc hành.'],
+ // ===== MÓN RAU / XÀO =====
+ ['Rau muống xào tỏi','rau',[['rau muống',1,'bó'],['tỏi',1,'củ']],12,'Dễ',14000,90,'1. Rau muống nhặt, rửa sạch, để ráo.\n2. Phi thơm tỏi băm với dầu.\n3. Cho rau vào xào lửa lớn, nêm hạt nêm, đảo nhanh đến khi vừa chín tới.'],
+ ['Rau muống luộc','rau',[['rau muống',1,'bó']],10,'Dễ',10000,60,'1. Đun sôi nước với chút muối.\n2. Cho rau muống vào luộc 2-3 phút.\n3. Vớt ra, có thể dầm nước mắm tỏi ớt ăn kèm.'],
+ ['Cải ngọt xào tỏi','rau',[['cải ngọt',1,'bó'],['tỏi',1,'củ']],12,'Dễ',14000,85,'1. Cải ngọt rửa sạch, cắt khúc.\n2. Phi thơm tỏi, cho cải vào xào lửa lớn.\n3. Nêm vừa, đảo nhanh cho cải xanh giòn.'],
+ ['Bông cải xào tỏi','rau',[['bông cải',1,'cây'],['tỏi',1,'củ']],15,'Dễ',22000,95,'1. Bông cải cắt miếng, chần sơ nước sôi cho ráo.\n2. Phi thơm tỏi.\n3. Cho bông cải vào xào, nêm vừa, đảo đều 2-3 phút.'],
+ ['Đậu que xào tỏi','rau',[['đậu que',300,'g'],['tỏi',1,'củ']],12,'Dễ',18000,90,'1. Đậu que tước xơ, rửa sạch, cắt khúc.\n2. Phi thơm tỏi, cho đậu vào xào.\n3. Thêm chút nước, đậy nắp 2 phút cho mềm, nêm vừa.'],
+ ['Bắp cải xào','rau',[['bắp cải',0.5,'cây'],['tỏi',1,'củ']],12,'Dễ',14000,85,'1. Bắp cải thái sợi, rửa sạch.\n2. Phi thơm tỏi.\n3. Cho bắp cải vào xào lửa lớn, nêm vừa, đảo nhanh đến khi mềm.'],
+ ['Su su xào','rau',[['su su',2,'trái'],['tỏi',1,'củ']],12,'Dễ',16000,80,'1. Su su gọt vỏ, thái lát mỏng.\n2. Phi thơm tỏi.\n3. Xào su su lửa lớn, thêm chút nước, nêm vừa cho mềm.'],
+ ['Rau lang xào tỏi','rau',[['rau lang',1,'bó'],['tỏi',1,'củ']],12,'Dễ',14000,85,'1. Rau lang nhặt ngọn non, rửa sạch.\n2. Phi thơm tỏi.\n3. Cho rau vào xào lửa lớn, nêm vừa, đảo nhanh kẻo dai.'],
+ ['Giá hẹ xào','rau',[['giá đỗ',200,'g'],['hẹ',1,'bó']],10,'Dễ',12000,70,'1. Giá đỗ rửa sạch, hẹ cắt khúc.\n2. Phi chút tỏi, cho giá vào xào lửa lớn.\n3. Thêm hẹ, nêm vừa, đảo nhanh rồi tắt bếp.'],
 ];
 
 /* tra cứu công thức theo tên món mẫu để tự điền cho món cũ còn trống */
@@ -409,12 +418,20 @@ function normalizeDishes(){
     if(typeof d.off!=='boolean')d.off=false;
   });
 }
+/* nạp sẵn món rau/xào nếu kho chưa có món loại 'rau' nào */
+function ensureRauDishes(){
+  if((dishes||[]).some(d=>d.type==='rau'))return false;
+  const rau=SAMPLE.filter(s=>s[1]==='rau');
+  if(!rau.length)return false;
+  rau.forEach((s,i)=>dishes.push({id:'rau'+(i+1),name:s[0],type:s[1],ing:s[2],time:s[3],difficulty:s[4],price:s[5],calories:s[6],recipe:s[7]||'',fav:false,off:false}));
+  return true;
+}
 let dishes=load(STORE_DISHES,null);
 if(!dishes){
   dishes=SAMPLE.map((s,i)=>({id:'d'+(i+1),name:s[0],type:s[1],ing:s[2],time:s[3],difficulty:s[4],price:s[5],calories:s[6],recipe:s[7]||'',fav:false,off:false}));
   save(STORE_DISHES,dishes);
 } else {
-  const changed=backfillRecipes(); normalizeDishes(); if(changed)save(STORE_DISHES,dishes);
+  const changed=backfillRecipes(); normalizeDishes(); const addedRau=ensureRauDishes(); if(changed||addedRau)save(STORE_DISHES,dishes);
 }
 normalizeDishes();
 let history=load(STORE_HISTORY,[]);
@@ -467,13 +484,14 @@ function rand(a){return a[Math.floor(Math.random()*a.length)]}
 const PROTEIN_KW=[
   ['Gà',['cánh gà','đùi gà','ức gà','thịt gà','gà ']],
   ['Bò',['thịt bò','bò ']],
-  ['Cá/Hải sản',['cá ','cá r','cá b','cá t','cá d','cá n','basa','rô phi','diêu hồng','nục','tôm','mực']],
-  ['Trứng',['trứng']],
+  ['Cá/Hải sản',['cá ','basa','rô phi','diêu hồng','nục','thu','tôm','mực']],
   ['Heo',['ba chỉ','nạc vai','thăn heo','thịt heo','sườn','thịt viên']],
+  ['Trứng',['trứng']],
 ];
 function proteinOf(d){
   if(!d||d.type!=='kho')return null;
-  const hay=(' '+d.name+' '+(d.ing||[]).map(x=>x[0]).join(' ')+' ').toLowerCase();
+  // bỏ "trứng gà" (= trứng) để không nhầm thành thịt gà
+  const hay=(' '+d.name+' '+(d.ing||[]).map(x=>x[0]).join(' ')+' ').toLowerCase().replace(/trứng gà/g,'trứng');
   for(const [g,kws] of PROTEIN_KW){ if(kws.some(k=>hay.includes(k)))return g; }
   return 'Khác';
 }
@@ -536,12 +554,11 @@ function rerollDay(i){
 function renderPlan(){
   if(!currentPlan.length){document.getElementById('plan-out').innerHTML='';return}
   const sf=servingFactor(),ppl=+elServ.value||2;
-  let total=0,calBase=0;
+  let total=0;
   const miniRow=(icon,dish,cls,label)=>`<div class="mini"><span class="ic">${icon}</span><div><div class="mn">${dish.name}<span class="tag ${cls}">${label}</span><button class="recipe-btn" onclick="showRecipe('${dish.id}')" title="Xem công thức">📖</button></div><div class="md">${dish.time} phút · ${fmt((dish.price||0)*sf)}</div></div></div>`;
   const days=currentPlan.map((d,i)=>{
     const list=[d.kho,d.canh,...(d.rau?[d.rau]:[])];
     const cost=list.reduce((s,x)=>s+(x.price||0),0)*sf; total+=cost;
-    calBase+=list.reduce((s,x)=>s+(x.calories||0),0);
     return `<div class="day">
       <div class="day-head">
         <span class="day-title">Ngày ${i+1}</span>
@@ -564,7 +581,7 @@ function renderPlan(){
       <div class="summary">
         <div class="stat"><div class="k">Tổng chi phí</div><div class="v">${fmt(total)}</div></div>
         <div class="stat"><div class="k">Trung bình / ngày</div><div class="v">${fmt(total/currentPlan.length)}</div></div>
-        <div class="stat"><div class="k">Calo / người / ngày</div><div class="v">${Math.round(calBase/currentPlan.length/2)}</div></div>
+        <div class="stat"><div class="k">Số món / ngày</div><div class="v">${currentPlan[0]?[currentPlan[0].kho,currentPlan[0].canh,currentPlan[0].rau].filter(Boolean).length:0}</div></div>
       </div>
     </div>
     <div class="card" id="shop-card">
@@ -585,7 +602,7 @@ function renderPlan(){
 const CATS=[
   {key:'thit',label:'🥩 Thịt · Cá · Trứng',kw:['thịt','sườn','gà','bò','cá','trứng','tôm','mực']},
   {key:'nam',label:'🍄 Nấm',kw:['nấm']},
-  {key:'rau',label:'🥬 Rau · Củ · Quả',kw:['cải','rau','bí','bầu','su su','khoai','cà rốt','củ cải','bắp cải','mồng tơi','dền','ngót','thảo','bông cải','cần tây','hành tây','ớt chuông','cà chua','dứa','đậu bắp','giá đỗ']},
+  {key:'rau',label:'🥬 Rau · Củ · Quả',kw:['cải','rau','bí','bầu','su su','su hào','khoai','cà rốt','củ cải','bắp cải','mồng tơi','dền','ngót','thảo','bông cải','cần tây','hành tây','ớt chuông','cà chua','dứa','đậu bắp','đậu que','giá đỗ','hẹ','rau lang']},
   {key:'tinhbot',label:'🍚 Gạo · Tinh bột',kw:['gạo','bún','miến','phở','nui','mì ']},
   {key:'giavi',label:'🧂 Gia vị · Khác',kw:[]},
 ];
@@ -699,7 +716,6 @@ function startEdit(id){
   document.getElementById('f-ingredients').value=ingText(d.ing);
   document.getElementById('f-time').value=d.time||'';
   document.getElementById('f-difficulty').value=d.difficulty||'Dễ';
-  document.getElementById('f-calories').value=d.calories||'';
   document.getElementById('f-recipe').value=d.recipe||'';
   document.getElementById('form-title').textContent='✏️ Sửa món: '+d.name;
   document.getElementById('form-sub').textContent='Chỉnh sửa thông tin rồi bấm Cập nhật.';
@@ -723,7 +739,7 @@ document.getElementById('add-form').addEventListener('submit',e=>{
   const name=gv('f-name').trim(); if(!name)return;
   const payload={name,type:gv('f-type'),ing:parseIng(gv('f-ingredients')),
     time:+gv('f-time')||0,difficulty:gv('f-difficulty'),
-    price:+gv('f-price')||0,calories:+gv('f-calories')||0,recipe:gv('f-recipe').trim()};
+    price:+gv('f-price')||0,recipe:gv('f-recipe').trim()};
   if(editingId){
     Object.assign(dishes.find(x=>x.id===editingId),payload);
     toast('✅ Đã cập nhật "'+name+'"'); persistDishes(); resetForm(); switchTab('list');
@@ -745,7 +761,7 @@ function showRecipe(id){
   document.getElementById('recipe-box').innerHTML=`
     <button class="modal-close" onclick="closeRecipe()">✕</button>
     <h2>${d.name}<span class="tag ${d.type}">${typeLabel(d.type)}</span></h2>
-    <div class="modal-meta">⏱️ ${d.time||'?'} phút · 📊 ${d.difficulty||'-'} · 💰 ${fmt((d.price||0)*sf)}${d.calories?' · 🔥 '+Math.round(d.calories/2)+' cal/người':''}</div>
+    <div class="modal-meta">⏱️ ${d.time||'?'} phút · 📊 ${d.difficulty||'-'} · 💰 ${fmt((d.price||0)*sf)}</div>
     <h4>🧺 Nguyên liệu (${ppl} người)</h4>
     <div class="recipe-ings">${ingTextScaled(d.ing,sf)||'—'}</div>
     <h4>👩‍🍳 Cách làm</h4>
@@ -776,14 +792,14 @@ function renderList(){
   document.getElementById('list-count').textContent=
     `${dishes.filter(d=>d.type==='kho').length} khô · ${dishes.filter(d=>d.type==='canh').length} canh · ${dishes.filter(d=>d.type==='rau').length} rau`;
   const body=document.getElementById('list-body');
-  if(!rows.length){body.innerHTML='<tr><td colspan="9" class="empty">Không có món nào khớp</td></tr>';return}
+  if(!rows.length){body.innerHTML='<tr><td colspan="8" class="empty">Không có món nào khớp</td></tr>';return}
   body.innerHTML=rows.map(d=>`<tr class="${d.off?'row-off':''}">
     <td><button class="favbtn ${d.fav?'on':''}" onclick="toggleFav('${d.id}')" title="Đánh dấu yêu thích">⭐</button> <b>${d.name}</b></td>
     <td><span class="tag ${d.type}">${typeLabel(d.type)}</span></td>
     <td>${d.recipe?`<button class="recipe-chip" onclick="showRecipe('${d.id}')" title="Xem công thức">📖 Có công thức</button>`:`<span class="no-recipe">— chưa có</span>`}</td>
     <td style="color:var(--muted);font-size:13px">${ingText(d.ing)||'-'}</td>
     <td>${d.time||'-'}</td><td>${d.difficulty||'-'}</td>
-    <td>${d.price?fmt(d.price):'-'}</td><td>${d.calories||'-'}</td>
+    <td>${d.price?fmt(d.price):'-'}</td>
     <td style="white-space:nowrap"><button class="offbtn ${d.off?'on':''}" onclick="toggleOff('${d.id}')" title="${d.off?'Đang loại khỏi random — bấm để bật lại':'Loại món này khỏi random'}">${d.off?'🚫 Đã ẩn':'Random'}</button><button class="edit" onclick="startEdit('${d.id}')">Sửa</button><button class="del" data-id="${d.id}">Xóa</button></td></tr>`).join('');
   body.querySelectorAll('.del').forEach(b=>b.onclick=()=>{
     const d=dishes.find(x=>x.id===b.dataset.id);
@@ -846,9 +862,9 @@ async function pullCloud(){
   const {data,error}=await sb.from('mealmate').select('data').eq('code',SYNC_CODE).maybeSingle();
   if(error){ setBadge('⚠️ lỗi tải','bad'); console.error(error); return; }
   if(data&&Array.isArray(data.data)){
-    dishes=data.data; const changed=backfillRecipes(); normalizeDishes(); save(STORE_DISHES,dishes); renderList(); generate();
+    dishes=data.data; const changed=backfillRecipes(); normalizeDishes(); const addedRau=ensureRauDishes(); save(STORE_DISHES,dishes); renderList(); generate();
     setBadge('✓ đã đồng bộ','ok');
-    if(changed) pushCloud();   // lưu lại công thức vừa điền lên cloud
+    if(changed||addedRau) pushCloud();   // lưu lại công thức / món rau vừa thêm lên cloud
   } else {
     // cloud trống: đẩy dữ liệu mẫu hiện có lên làm bản gốc
     await pushCloud();
