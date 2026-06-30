@@ -664,22 +664,29 @@ function saveCurrentPlan(){
   history.unshift({id:'h'+Date.now(),date:new Date().toISOString(),days:currentPlan.length,servings:+elServ.value||2,total,
     dishes:currentPlan.map(d=>[d.kho.name,d.canh.name,...(d.rau?[d.rau.name]:[])].join(' + ')),
     plan:JSON.parse(JSON.stringify(currentPlan))});   // lưu cả công thức để xem lại sau
-  history=history.slice(0,50); save(STORE_HISTORY,history); renderHistory(); pushHistSoon(); toast('📌 Đã lưu đợt chợ này');
+  history=history.slice(0,80); save(STORE_HISTORY,history); renderHistory(); pushHistSoon(); toast('📌 Đã lưu đợt chợ này');
 }
-function delHist(id){history=history.filter(h=>h.id!==id);save(STORE_HISTORY,history);renderHistory();pushHistSoon()}
+function delHist(id){
+  const h=history.find(x=>x.id===id);
+  if(!h||!confirm('Xóa đợt này khỏi lịch sử (trên mọi thiết bị)?'))return;
+  // đánh dấu đã xóa (tombstone) để đồng bộ việc xóa sang máy khác
+  history=history.map(x=>x.id===id?{id:x.id,date:x.date,del:true}:x);
+  save(STORE_HISTORY,history); renderHistory(); pushHistSoon();
+}
 function renderHistory(){
   const el=document.getElementById('hist-out'); if(!el)return;
-  if(!history.length){el.innerHTML='';return}
+  const list=history.filter(h=>!h.del);
+  if(!list.length){el.innerHTML='';return}
   const now=new Date();
-  const monthTotal=history.filter(h=>{const d=new Date(h.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()})
+  const monthTotal=list.filter(h=>{const d=new Date(h.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()})
     .reduce((s,h)=>s+(h.total||0),0);
   el.innerHTML=`<div class="card">
-    <div class="shop-head"><div><h2>📒 Lịch sử &amp; chi tiêu</h2><p class="sub" style="margin:0">Các đợt thực đơn bạn đã lưu (chỉ lưu trên máy này).</p></div></div>
+    <div class="shop-head"><div><h2>📒 Lịch sử &amp; chi tiêu</h2><p class="sub" style="margin:0">Các đợt thực đơn đã lưu — đồng bộ giữa các thiết bị.</p></div></div>
     <div class="summary">
       <div class="stat"><div class="k">Chi tiêu tháng này</div><div class="v">${fmt(monthTotal)}</div></div>
-      <div class="stat"><div class="k">Số đợt đã lưu</div><div class="v">${history.length}</div></div>
+      <div class="stat"><div class="k">Số đợt đã lưu</div><div class="v">${list.length}</div></div>
     </div>
-    <div style="margin-top:14px">${history.map(h=>`<div class="shop-item" style="align-items:flex-start">
+    <div style="margin-top:14px">${list.map(h=>`<div class="shop-item" style="align-items:flex-start">
       <div style="flex:1"><b>${fmtDate(h.date)}</b> · ${h.days} ngày · ${h.servings} người
         <div class="md" style="font-size:12px;color:var(--muted);margin-top:4px">${(h.dishes||[]).join(' • ')}</div></div>
       <span class="qt">${fmt(h.total)}</span>
@@ -859,10 +866,16 @@ async function pushCloud(){
   else setBadge('✓ đã đồng bộ','ok');
 }
 
-/* gộp lịch sử nhiều thiết bị theo id, mới nhất lên đầu, giữ tối đa 50 đợt */
+/* gộp lịch sử nhiều thiết bị theo id; dấu "đã xóa" luôn thắng để xóa lan ra mọi máy */
 function mergeHistory(incoming){
-  const byId={}; [...(incoming||[]),...history].forEach(h=>{ if(h&&h.id&&!byId[h.id])byId[h.id]=h; });
-  history=Object.values(byId).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,50);
+  const byId={};
+  [...(incoming||[]),...history].forEach(h=>{
+    if(!h||!h.id)return;
+    const cur=byId[h.id];
+    if(!cur){ byId[h.id]=h; }
+    else if(h.del&&!cur.del){ byId[h.id]={id:h.id,date:h.date||cur.date,del:true}; }
+  });
+  history=Object.values(byId).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,80);
   save(STORE_HISTORY,history);
 }
 async function pushHistory(){
