@@ -664,9 +664,9 @@ function saveCurrentPlan(){
   history.unshift({id:'h'+Date.now(),date:new Date().toISOString(),days:currentPlan.length,servings:+elServ.value||2,total,
     dishes:currentPlan.map(d=>[d.kho.name,d.canh.name,...(d.rau?[d.rau.name]:[])].join(' + ')),
     plan:JSON.parse(JSON.stringify(currentPlan))});   // lưu cả công thức để xem lại sau
-  history=history.slice(0,30); save(STORE_HISTORY,history); renderHistory(); toast('📌 Đã lưu đợt chợ này');
+  history=history.slice(0,50); save(STORE_HISTORY,history); renderHistory(); pushHistSoon(); toast('📌 Đã lưu đợt chợ này');
 }
-function delHist(id){history=history.filter(h=>h.id!==id);save(STORE_HISTORY,history);renderHistory()}
+function delHist(id){history=history.filter(h=>h.id!==id);save(STORE_HISTORY,history);renderHistory();pushHistSoon()}
 function renderHistory(){
   const el=document.getElementById('hist-out'); if(!el)return;
   if(!history.length){el.innerHTML='';return}
@@ -839,7 +839,8 @@ document.getElementById('import-file').onchange=e=>{
 };
 
 /* ================= ĐỒNG BỘ ĐA THIẾT BỊ (Supabase) ================= */
-let sb=null, pushTimer=null, lastPushedAt=0;
+let sb=null, pushTimer=null, histTimer=null, lastPushedAt=0;
+const HIST_CODE = SYNC_CODE+'::hist';   // lịch sử lưu ở dòng riêng cùng bảng
 const badge=document.getElementById('cloud-badge');
 const cloudReady = SUPABASE_URL && !SUPABASE_URL.includes('YOUR-PROJECT') && SUPABASE_KEY && !SUPABASE_KEY.includes('YOUR-ANON');
 
@@ -848,6 +849,7 @@ function setBadge(text,kind){ badge.textContent=text; badge.className='cloud-bad
 function persistDishes(){ save(STORE_DISHES,dishes); pushSoon(); }
 
 function pushSoon(){ if(!sb)return; clearTimeout(pushTimer); pushTimer=setTimeout(pushCloud,1200); }
+function pushHistSoon(){ if(!sb)return; clearTimeout(histTimer); histTimer=setTimeout(pushHistory,1000); }
 
 async function pushCloud(){
   if(!sb)return;
@@ -855,6 +857,26 @@ async function pushCloud(){
   const {error}=await sb.from('mealmate').upsert({code:SYNC_CODE,data:dishes,updated_at:stamp});
   if(error){ setBadge('⚠️ lỗi lưu','bad'); console.error(error); }
   else setBadge('✓ đã đồng bộ','ok');
+}
+
+/* gộp lịch sử nhiều thiết bị theo id, mới nhất lên đầu, giữ tối đa 50 đợt */
+function mergeHistory(incoming){
+  const byId={}; [...(incoming||[]),...history].forEach(h=>{ if(h&&h.id&&!byId[h.id])byId[h.id]=h; });
+  history=Object.values(byId).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,50);
+  save(STORE_HISTORY,history);
+}
+async function pushHistory(){
+  if(!sb)return;
+  lastPushedAt=Date.now();
+  const {error}=await sb.from('mealmate').upsert({code:HIST_CODE,data:history,updated_at:new Date().toISOString()});
+  if(error)console.error(error);
+}
+async function pullHistory(){
+  if(!sb)return;
+  const {data,error}=await sb.from('mealmate').select('data').eq('code',HIST_CODE).maybeSingle();
+  if(error){ console.error(error); return; }
+  if(data&&Array.isArray(data.data)){ mergeHistory(data.data); renderHistory(); }
+  else if(history.length){ await pushHistory(); }   // cloud trống → đẩy lịch sử hiện có lên
 }
 
 async function pullCloud(){
@@ -878,14 +900,18 @@ async function initCloud(){
   catch(e){ setBadge('⚠️ cấu hình sai','bad'); return; }
   setBadge('⏳ đang tải…');
   await pullCloud();
-  // realtime: máy khác sửa → tự cập nhật
+  await pullHistory();
+  // realtime: máy khác sửa món hoặc lưu đợt → tự cập nhật
   sb.channel('mealmate-'+SYNC_CODE)
-    .on('postgres_changes',{event:'*',schema:'public',table:'mealmate',filter:'code=eq.'+SYNC_CODE},payload=>{
+    .on('postgres_changes',{event:'*',schema:'public',table:'mealmate'},payload=>{
       if(Date.now()-lastPushedAt<2500)return;          // bỏ qua thay đổi do chính mình vừa đẩy
-      const row=payload.new;
-      if(row&&Array.isArray(row.data)){
+      const row=payload.new; if(!row||!Array.isArray(row.data))return;
+      if(row.code===SYNC_CODE){
         dishes=row.data; normalizeDishes(); save(STORE_DISHES,dishes); renderList(); generate();
-        setBadge('✓ cập nhật từ máy khác','ok'); toast('☁️ Danh sách vừa được cập nhật từ thiết bị khác');
+        setBadge('✓ cập nhật từ máy khác','ok'); toast('☁️ Danh sách món vừa được cập nhật từ thiết bị khác');
+      } else if(row.code===HIST_CODE){
+        mergeHistory(row.data); renderHistory();
+        setBadge('✓ cập nhật từ máy khác','ok'); toast('☁️ Có đợt thực đơn mới được lưu từ thiết bị khác');
       }
     }).subscribe();
 }
