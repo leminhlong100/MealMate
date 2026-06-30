@@ -108,7 +108,22 @@
   .field input,.field select{padding:11px 13px; border:1.5px solid var(--line); border-radius:12px; font-size:15px; background:#fff; font-family:inherit}
   .field input:focus,.field select:focus{outline:none; border-color:var(--accent2)}
   .hint{font-size:12px; color:var(--muted)}
-  .save{margin-top:18px; border:none; background:var(--ok); color:#fff; padding:13px 26px; border-radius:12px; font-weight:700; cursor:pointer; font-size:15px; font-family:inherit}
+  .field textarea{padding:11px 13px; border:1.5px solid var(--line); border-radius:12px; font-size:14px; background:#fff; font-family:inherit; resize:vertical; line-height:1.6}
+  .field textarea:focus{outline:none; border-color:var(--accent2)}
+  .form-actions{display:flex; gap:10px; align-items:center; margin-top:18px}
+  .save{border:none; background:var(--ok); color:#fff; padding:13px 26px; border-radius:12px; font-weight:700; cursor:pointer; font-size:15px; font-family:inherit}
+  .edit{border:none; background:var(--kho-bg); color:var(--kho); border-radius:8px; padding:6px 11px; cursor:pointer; font-weight:700; font-family:inherit; margin-right:6px}
+  .recipe-btn{border:none; background:#fff4ec; color:var(--kho); border-radius:8px; padding:3px 8px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; margin-left:6px}
+  /* recipe modal */
+  .modal{position:fixed; inset:0; background:rgba(38,33,28,.5); display:none; align-items:center; justify-content:center; z-index:100; padding:20px}
+  .modal.show{display:flex}
+  .modal-box{background:#fff; border-radius:var(--radius); max-width:540px; width:100%; max-height:85vh; overflow:auto; padding:28px; box-shadow:var(--shadow)}
+  .modal-box h2{font-size:23px; margin-bottom:10px}
+  .modal-meta{color:var(--muted); font-size:14px; margin-bottom:16px}
+  .modal-box h4{margin:18px 0 8px; font-size:14px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted)}
+  .recipe-steps{white-space:pre-wrap; line-height:1.9; font-size:15px}
+  .recipe-ings{font-size:14px; line-height:1.8}
+  .modal-close{float:right; border:none; background:#f1ece4; width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:16px; font-weight:700}
 
   /* Dish list */
   .list-head{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px}
@@ -182,8 +197,8 @@
   <!-- ADD -->
   <section class="panel" id="panel-add">
     <div class="card">
-      <h2>Thêm món ăn mới</h2>
-      <p class="sub">Nhập nguyên liệu kèm số lượng để món hiện trong danh sách đi chợ.</p>
+      <h2 id="form-title">Thêm món ăn mới</h2>
+      <p class="sub" id="form-sub">Nhập nguyên liệu kèm số lượng để món hiện trong danh sách đi chợ.</p>
       <form id="add-form">
         <div class="form-grid">
           <div class="field full">
@@ -206,8 +221,19 @@
           <div class="field"><label>Thời gian nấu (phút)</label><input id="f-time" type="number" min="0" placeholder="30"></div>
           <div class="field"><label>Độ khó</label><select id="f-difficulty"><option>Dễ</option><option>Trung bình</option><option>Khó</option></select></div>
           <div class="field"><label>Calories (tùy chọn)</label><input id="f-calories" type="number" min="0" placeholder="350"></div>
+          <div class="field full">
+            <label>Công thức nấu (tùy chọn)</label>
+            <textarea id="f-recipe" rows="6" placeholder="Mỗi bước một dòng. VD:
+1. Ướp thịt với hành, tiêu, nước mắm 15 phút
+2. Phi thơm hành tím, cho thịt vào xào săn
+3. Thêm nước, kho lửa nhỏ 20 phút"></textarea>
+            <span class="hint">Mỗi bước một dòng. Hiện khi xem công thức trong thực đơn.</span>
+          </div>
         </div>
-        <button class="save" type="submit">💾 Lưu món</button>
+        <div class="form-actions">
+          <button class="save" type="submit" id="form-save">💾 Lưu món</button>
+          <button class="btn-ghost" type="button" id="form-cancel" style="display:none">Hủy sửa</button>
+        </div>
       </form>
     </div>
   </section>
@@ -236,6 +262,8 @@
 <div class="toast" id="toast"></div>
 <div class="cloud-badge" id="cloud-badge" title="Trạng thái đồng bộ">⏳ đang kết nối…</div>
 
+<div class="modal" id="recipe-modal"><div class="modal-box" id="recipe-box"></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ============================================================
@@ -252,80 +280,93 @@ const STORE_OPTS='mealmate.opts.v2';
 /* ingredient format: [name, qty, unit] for 2 servings */
 const SAMPLE=[
  // ===== MÓN KHÔ — THỊT HEO =====
- ['Thịt kho trứng','kho',[['thịt ba chỉ',300,'g'],['trứng gà',4,'quả'],['nước dừa',200,'ml']],45,'Dễ',62000,420],
- ['Thịt kho tiêu','kho',[['thịt ba chỉ',300,'g'],['tiêu',1,'gói'],['hành tím',3,'củ']],35,'Dễ',52000,380],
- ['Thịt rang cháy cạnh','kho',[['thịt ba chỉ',300,'g'],['hành tím',3,'củ']],30,'Dễ',50000,400],
- ['Thịt rim nước mắm','kho',[['thịt nạc vai',300,'g'],['nước mắm',1,'chai nhỏ']],30,'Dễ',50000,360],
- ['Thịt rim tiêu','kho',[['thịt nạc vai',300,'g'],['tiêu',1,'gói']],30,'Dễ',50000,370],
- ['Sườn kho','kho',[['sườn non',400,'g'],['hành tím',3,'củ']],45,'Trung bình',78000,450],
- ['Sườn rim chua ngọt','kho',[['sườn non',400,'g'],['cà chua',2,'trái'],['dứa',0.25,'trái']],40,'Trung bình',82000,430],
- ['Thịt viên sốt cà chua','kho',[['thịt heo bằm',300,'g'],['cà chua',3,'trái'],['hành lá',1,'bó']],35,'Trung bình',58000,390],
- ['Thịt áp chảo','kho',[['thịt thăn heo',300,'g'],['tỏi',1,'củ']],20,'Dễ',55000,350],
- ['Thịt nướng chảo','kho',[['thịt ba chỉ',300,'g'],['sả',3,'cây']],25,'Dễ',54000,380],
+ ['Thịt kho trứng','kho',[['thịt ba chỉ',300,'g'],['trứng gà',4,'quả'],['nước dừa',200,'ml']],45,'Dễ',62000,420,'1. Luộc trứng, bóc vỏ. Thịt ba chỉ cắt miếng vừa ăn.\n2. Thắng nước màu, cho thịt vào xào săn, nêm nước mắm + đường.\n3. Đổ nước dừa xâm xấp, cho trứng vào, kho lửa nhỏ 30 phút đến khi nước sánh.'],
+ ['Thịt kho tiêu','kho',[['thịt ba chỉ',300,'g'],['tiêu',1,'gói'],['hành tím',3,'củ']],35,'Dễ',52000,380,'1. Thịt cắt miếng, ướp nước mắm, đường, tiêu, hành tím băm 15 phút.\n2. Thắng nước màu, cho thịt vào kho săn.\n3. Thêm chút nước, kho lửa nhỏ đến khi cạn, rắc nhiều tiêu.'],
+ ['Thịt rang cháy cạnh','kho',[['thịt ba chỉ',300,'g'],['hành tím',3,'củ']],30,'Dễ',50000,400,'1. Thịt ba chỉ cắt mỏng, ướp nước mắm, đường, hành tím.\n2. Cho vào chảo rang lửa vừa cho ra mỡ và cháy cạnh.\n3. Nêm lại, đảo đến khi vàng giòn các cạnh.'],
+ ['Thịt rim nước mắm','kho',[['thịt nạc vai',300,'g'],['nước mắm',1,'chai nhỏ']],30,'Dễ',50000,360,'1. Thịt nạc vai cắt miếng, áp chảo cho săn.\n2. Pha nước mắm + đường tỉ lệ 1:1, đổ vào chảo.\n3. Rim lửa nhỏ đến khi nước mắm keo lại bám đều thịt.'],
+ ['Thịt rim tiêu','kho',[['thịt nạc vai',300,'g'],['tiêu',1,'gói']],30,'Dễ',50000,370,'1. Thịt cắt miếng, ướp nước mắm, đường, tiêu.\n2. Áp chảo cho săn rồi thêm chút nước.\n3. Rim đến khi cạn sệt, rắc thêm tiêu.'],
+ ['Sườn kho','kho',[['sườn non',400,'g'],['hành tím',3,'củ']],45,'Trung bình',78000,450,'1. Sườn chần sơ nước sôi cho sạch, để ráo.\n2. Ướp sườn với nước mắm, đường, hành tím 20 phút.\n3. Thắng nước màu, cho sườn vào, thêm nước xâm xấp, kho nhỏ lửa 35 phút.'],
+ ['Sườn rim chua ngọt','kho',[['sườn non',400,'g'],['cà chua',2,'trái'],['dứa',0.25,'trái']],40,'Trung bình',82000,430,'1. Sườn chần sơ rồi chiên vàng.\n2. Pha sốt: cà chua xay, dứa băm, đường, giấm, nước mắm.\n3. Cho sườn vào rim với sốt đến khi sánh, bám đều.'],
+ ['Thịt viên sốt cà chua','kho',[['thịt heo bằm',300,'g'],['cà chua',3,'trái'],['hành lá',1,'bó']],35,'Trung bình',58000,390,'1. Trộn thịt bằm với hành, tiêu, nước mắm; vo viên.\n2. Chiên sơ viên thịt cho săn.\n3. Phi cà chua băm, nêm gia vị, cho thịt viên vào rim, rắc hành lá.'],
+ ['Thịt áp chảo','kho',[['thịt thăn heo',300,'g'],['tỏi',1,'củ']],20,'Dễ',55000,350,'1. Thịt thăn cắt lát dày, ướp tỏi băm, tiêu, nước mắm 15 phút.\n2. Làm nóng chảo ít dầu, áp chảo mỗi mặt 2-3 phút.\n3. Để thịt nghỉ 5 phút rồi cắt lát.'],
+ ['Thịt nướng chảo','kho',[['thịt ba chỉ',300,'g'],['sả',3,'cây']],25,'Dễ',54000,380,'1. Thịt ba chỉ cắt mỏng, ướp sả băm, nước mắm, đường, dầu hào.\n2. Ướp 30 phút cho thấm.\n3. Áp chảo lửa vừa đến khi vàng cạnh, thơm sả.'],
  // ===== GÀ =====
- ['Gà kho gừng','kho',[['thịt gà',400,'g'],['gừng',1,'củ'],['hành tím',3,'củ']],35,'Dễ',55000,400],
- ['Gà kho tiêu','kho',[['thịt gà',400,'g'],['tiêu',1,'gói']],35,'Dễ',55000,390],
- ['Gà chiên nước mắm','kho',[['cánh gà',400,'g'],['nước mắm',1,'chai nhỏ'],['tỏi',1,'củ']],30,'Trung bình',56000,420],
- ['Gà chiên giòn','kho',[['đùi gà',400,'g'],['bột chiên giòn',1,'gói']],35,'Trung bình',62000,480],
- ['Gà áp chảo','kho',[['ức gà',350,'g'],['tỏi',1,'củ']],20,'Dễ',48000,320],
- ['Gà nướng','kho',[['đùi gà',400,'g'],['mật ong',1,'chai nhỏ'],['sả',3,'cây']],40,'Trung bình',64000,430],
- ['Gà rim mặn ngọt','kho',[['thịt gà',400,'g'],['hành tím',3,'củ']],35,'Dễ',55000,400],
- ['Gà sốt mật ong','kho',[['cánh gà',400,'g'],['mật ong',1,'chai nhỏ']],35,'Trung bình',60000,440],
+ ['Gà kho gừng','kho',[['thịt gà',400,'g'],['gừng',1,'củ'],['hành tím',3,'củ']],35,'Dễ',55000,400,'1. Gà chặt miếng, ướp gừng băm, hành tím, nước mắm, đường 15 phút.\n2. Thắng nước màu, cho gà vào xào săn.\n3. Thêm gừng thái sợi và chút nước, kho nhỏ lửa 20 phút.'],
+ ['Gà kho tiêu','kho',[['thịt gà',400,'g'],['tiêu',1,'gói']],35,'Dễ',55000,390,'1. Gà chặt miếng, ướp nước mắm, đường, tiêu.\n2. Xào săn rồi thêm chút nước.\n3. Kho đến khi cạn sệt, rắc nhiều tiêu.'],
+ ['Gà chiên nước mắm','kho',[['cánh gà',400,'g'],['nước mắm',1,'chai nhỏ'],['tỏi',1,'củ']],30,'Trung bình',56000,420,'1. Chiên cánh gà vàng giòn, vớt ra.\n2. Phi tỏi, cho nước mắm + đường vào đun keo.\n3. Cho gà vào đảo nhanh cho áo đều sốt.'],
+ ['Gà chiên giòn','kho',[['đùi gà',400,'g'],['bột chiên giòn',1,'gói']],35,'Trung bình',62000,480,'1. Đùi gà ướp gia vị, để 15 phút.\n2. Lăn qua bột chiên giòn.\n3. Chiên ngập dầu lửa vừa đến khi vàng giòn, để ráo dầu.'],
+ ['Gà áp chảo','kho',[['ức gà',350,'g'],['tỏi',1,'củ']],20,'Dễ',48000,320,'1. Ức gà ướp tỏi, tiêu, nước mắm.\n2. Áp chảo mỗi mặt 4-5 phút lửa vừa.\n3. Để nghỉ rồi cắt lát.'],
+ ['Gà nướng','kho',[['đùi gà',400,'g'],['mật ong',1,'chai nhỏ'],['sả',3,'cây']],40,'Trung bình',64000,430,'1. Đùi gà ướp sả băm, mật ong, nước mắm, dầu hào 30 phút.\n2. Nướng lò hoặc chảo lửa vừa, phết mật ong nhiều lần.\n3. Nướng đến khi da vàng caramel.'],
+ ['Gà rim mặn ngọt','kho',[['thịt gà',400,'g'],['hành tím',3,'củ']],35,'Dễ',55000,400,'1. Gà chặt miếng, ướp hành tím, nước mắm, đường.\n2. Xào săn, thêm chút nước.\n3. Rim lửa nhỏ đến khi sốt keo bám đều.'],
+ ['Gà sốt mật ong','kho',[['cánh gà',400,'g'],['mật ong',1,'chai nhỏ']],35,'Trung bình',60000,440,'1. Chiên sơ cánh gà cho săn.\n2. Pha mật ong + nước tương + tỏi.\n3. Cho gà vào rim với sốt đến khi bóng đều.'],
  // ===== BÒ =====
- ['Bò xào hành tây','kho',[['thịt bò',250,'g'],['hành tây',1,'củ']],20,'Dễ',88000,380],
- ['Bò xào cần tây','kho',[['thịt bò',250,'g'],['cần tây',1,'bó']],20,'Dễ',86000,360],
- ['Bò xào bông cải','kho',[['thịt bò',250,'g'],['bông cải',1,'cây']],20,'Dễ',90000,360],
- ['Bò lúc lắc','kho',[['thịt bò thăn',250,'g'],['ớt chuông',1,'trái'],['hành tây',1,'củ']],25,'Trung bình',98000,420],
- ['Bò sốt tiêu đen','kho',[['thịt bò',250,'g'],['tiêu đen',1,'gói']],25,'Trung bình',94000,410],
- ['Bò xào nấm','kho',[['thịt bò',250,'g'],['nấm rơm',200,'g']],22,'Dễ',92000,370],
+ ['Bò xào hành tây','kho',[['thịt bò',250,'g'],['hành tây',1,'củ']],20,'Dễ',88000,380,'1. Bò thái mỏng, ướp tỏi, dầu hào, tiêu 10 phút.\n2. Xào bò lửa lớn cho săn rồi trút ra.\n3. Xào hành tây tái, cho bò vào đảo nhanh, nêm vừa.'],
+ ['Bò xào cần tây','kho',[['thịt bò',250,'g'],['cần tây',1,'bó']],20,'Dễ',86000,360,'1. Bò thái mỏng ướp gia vị.\n2. Xào bò lửa lớn, trút ra.\n3. Xào cần tây tái, cho bò vào đảo nhanh.'],
+ ['Bò xào bông cải','kho',[['thịt bò',250,'g'],['bông cải',1,'cây']],20,'Dễ',90000,360,'1. Bông cải chần sơ. Bò ướp gia vị.\n2. Xào bò săn, trút ra.\n3. Xào bông cải, cho bò vào, nêm vừa.'],
+ ['Bò lúc lắc','kho',[['thịt bò thăn',250,'g'],['ớt chuông',1,'trái'],['hành tây',1,'củ']],25,'Trung bình',98000,420,'1. Bò thăn cắt vuông, ướp dầu hào, tiêu, tỏi.\n2. Xào lửa rất lớn cho từng mặt săn (lắc chảo liên tục).\n3. Cho hành tây, ớt chuông vào đảo nhanh.'],
+ ['Bò sốt tiêu đen','kho',[['thịt bò',250,'g'],['tiêu đen',1,'gói']],25,'Trung bình',94000,410,'1. Bò thái lát ướp gia vị.\n2. Xào săn, trút ra.\n3. Làm sốt tiêu đen (tiêu, dầu hào, chút bột năng), cho bò vào áo sốt.'],
+ ['Bò xào nấm','kho',[['thịt bò',250,'g'],['nấm rơm',200,'g']],22,'Dễ',92000,370,'1. Bò ướp gia vị, nấm rơm bổ đôi.\n2. Xào bò săn, trút ra.\n3. Xào nấm, cho bò vào đảo nhanh, nêm vừa.'],
  // ===== CÁ (CHIÊN) =====
- ['Cá rô phi chiên','kho',[['cá rô phi',1,'con']],25,'Dễ',42000,350],
- ['Cá basa chiên','kho',[['cá basa',400,'g']],20,'Dễ',45000,360],
- ['Cá thu chiên','kho',[['cá thu',2,'khúc']],20,'Dễ',65000,400],
- ['Cá diêu hồng chiên','kho',[['cá diêu hồng',1,'con']],25,'Dễ',52000,370],
- ['Cá nục chiên','kho',[['cá nục',400,'g']],20,'Dễ',40000,340],
- ['Cá chiên sả ớt','kho',[['cá basa',400,'g'],['sả',3,'cây'],['ớt',3,'trái']],25,'Dễ',48000,360],
- ['Cá chiên nước mắm','kho',[['cá nục',400,'g'],['nước mắm',1,'chai nhỏ']],25,'Dễ',44000,370],
+ ['Cá rô phi chiên','kho',[['cá rô phi',1,'con']],25,'Dễ',42000,350,'1. Cá làm sạch, khía hai bên, ướp muối + nghệ.\n2. Để ráo rồi chiên ngập dầu lửa vừa.\n3. Chiên vàng giòn hai mặt, để ráo dầu. Chấm nước mắm gừng.'],
+ ['Cá basa chiên','kho',[['cá basa',400,'g']],20,'Dễ',45000,360,'1. Cá rửa sạch, ướp chút muối, tiêu.\n2. Lăn qua bột (tùy chọn).\n3. Chiên vàng đều hai mặt.'],
+ ['Cá thu chiên','kho',[['cá thu',2,'khúc']],20,'Dễ',65000,400,'1. Khúc cá thu ướp muối, nghệ 10 phút.\n2. Chiên lửa vừa cho vàng.\n3. Lật đều đến khi giòn cạnh.'],
+ ['Cá diêu hồng chiên','kho',[['cá diêu hồng',1,'con']],25,'Dễ',52000,370,'1. Cá làm sạch, khía thân, ướp muối.\n2. Chiên ngập dầu lửa vừa.\n3. Chiên vàng giòn, chấm nước mắm gừng.'],
+ ['Cá nục chiên','kho',[['cá nục',400,'g']],20,'Dễ',40000,340,'1. Cá nục làm sạch, ướp muối.\n2. Chiên vàng hai mặt.\n3. Ăn kèm nước mắm tỏi ớt.'],
+ ['Cá chiên sả ớt','kho',[['cá basa',400,'g'],['sả',3,'cây'],['ớt',3,'trái']],25,'Dễ',48000,360,'1. Cá ướp sả băm, ớt, muối 15 phút.\n2. Chiên vàng cùng sả cho thơm.\n3. Rắc sả ớt phi lên trên.'],
+ ['Cá chiên nước mắm','kho',[['cá nục',400,'g'],['nước mắm',1,'chai nhỏ']],25,'Dễ',44000,370,'1. Chiên cá vàng giòn, vớt ra.\n2. Đun nước mắm + đường cho keo lại.\n3. Đảo cá với nước mắm cho áo đều.'],
  // ===== TRỨNG =====
- ['Trứng chiên hành','kho',[['trứng gà',4,'quả'],['hành lá',1,'bó']],10,'Dễ',24000,220],
- ['Trứng cuộn','kho',[['trứng gà',4,'quả']],15,'Dễ',22000,230],
- ['Trứng hấp','kho',[['trứng gà',4,'quả'],['thịt heo bằm',100,'g']],20,'Dễ',38000,210],
- ['Trứng sốt cà chua','kho',[['trứng gà',4,'quả'],['cà chua',3,'trái']],15,'Dễ',30000,240],
- ['Trứng chiên nấm','kho',[['trứng gà',4,'quả'],['nấm rơm',150,'g']],15,'Dễ',34000,230],
- ['Trứng chiên thịt bằm','kho',[['trứng gà',4,'quả'],['thịt heo bằm',100,'g']],15,'Dễ',40000,280],
+ ['Trứng chiên hành','kho',[['trứng gà',4,'quả'],['hành lá',1,'bó']],10,'Dễ',24000,220,'1. Đánh tan trứng với hành lá, nêm chút nước mắm.\n2. Đổ vào chảo dầu nóng.\n3. Chiên vàng hai mặt.'],
+ ['Trứng cuộn','kho',[['trứng gà',4,'quả']],15,'Dễ',22000,230,'1. Đánh tan trứng, nêm nhẹ.\n2. Đổ lớp mỏng, cuộn dần khi còn ướt.\n3. Lặp lại đến hết, cắt khoanh.'],
+ ['Trứng hấp','kho',[['trứng gà',4,'quả'],['thịt heo bằm',100,'g']],20,'Dễ',38000,210,'1. Đánh trứng với thịt bằm, nước, nêm gia vị.\n2. Lọc qua rây cho mịn.\n3. Hấp lửa nhỏ 12-15 phút đến khi đông mịn.'],
+ ['Trứng sốt cà chua','kho',[['trứng gà',4,'quả'],['cà chua',3,'trái']],15,'Dễ',30000,240,'1. Chiên trứng rồi để riêng.\n2. Phi cà chua băm cho mềm, nêm gia vị.\n3. Cho trứng vào rim ngấm sốt, rắc hành lá.'],
+ ['Trứng chiên nấm','kho',[['trứng gà',4,'quả'],['nấm rơm',150,'g']],15,'Dễ',34000,230,'1. Nấm rơm thái nhỏ, xào sơ.\n2. Đánh trứng, trộn nấm, nêm vừa.\n3. Chiên vàng hai mặt.'],
+ ['Trứng chiên thịt bằm','kho',[['trứng gà',4,'quả'],['thịt heo bằm',100,'g']],15,'Dễ',40000,280,'1. Ướp thịt bằm chút gia vị, xào sơ.\n2. Đánh trứng, trộn thịt và hành.\n3. Chiên vàng hai mặt.'],
  // ===== MÓN CANH — RAU LÁ =====
- ['Canh cải xanh','canh',[['cải xanh',1,'bó'],['gừng',0.5,'củ']],15,'Dễ',16000,80],
- ['Canh cải ngọt','canh',[['cải ngọt',1,'bó']],15,'Dễ',16000,80],
- ['Canh rau ngót','canh',[['rau ngót',1,'bó']],15,'Dễ',15000,70],
- ['Canh rau dền','canh',[['rau dền',1,'bó']],15,'Dễ',15000,70],
- ['Canh mồng tơi','canh',[['mồng tơi',1,'bó']],15,'Dễ',15000,75],
- ['Canh cải thảo','canh',[['cải thảo',0.5,'cây']],15,'Dễ',17000,80],
- ['Canh cải bẹ xanh','canh',[['cải bẹ xanh',1,'bó']],15,'Dễ',16000,80],
+ ['Canh cải xanh','canh',[['cải xanh',1,'bó'],['gừng',0.5,'củ']],15,'Dễ',16000,80,'1. Đun sôi nước với vài lát gừng.\n2. Cho cải xanh vào, nêm muối/hạt nêm.\n3. Cải vừa chín tới thì tắt bếp.'],
+ ['Canh cải ngọt','canh',[['cải ngọt',1,'bó']],15,'Dễ',16000,80,'1. Đun sôi nước, nêm gia vị.\n2. Cho cải ngọt vào.\n3. Nấu 2-3 phút rồi tắt bếp.'],
+ ['Canh rau ngót','canh',[['rau ngót',1,'bó']],15,'Dễ',15000,70,'1. Vò sơ rau ngót cho mềm.\n2. Nước sôi, nêm gia vị, cho rau vào.\n3. Sôi lại 2 phút là được.'],
+ ['Canh rau dền','canh',[['rau dền',1,'bó']],15,'Dễ',15000,70,'1. Nước sôi nêm gia vị.\n2. Cho rau dền vào.\n3. Nấu 3 phút đến khi mềm.'],
+ ['Canh mồng tơi','canh',[['mồng tơi',1,'bó']],15,'Dễ',15000,75,'1. Nước sôi nêm gia vị.\n2. Cho mồng tơi vào.\n3. Sôi lại 2-3 phút rồi tắt bếp.'],
+ ['Canh cải thảo','canh',[['cải thảo',0.5,'cây']],15,'Dễ',17000,80,'1. Cải thảo cắt khúc.\n2. Nước sôi, cho cải vào, nêm vừa.\n3. Nấu mềm 4-5 phút.'],
+ ['Canh cải bẹ xanh','canh',[['cải bẹ xanh',1,'bó']],15,'Dễ',16000,80,'1. Nước sôi nêm gia vị (có thể thêm gừng).\n2. Cho cải bẹ xanh vào.\n3. Nấu vừa chín tới.'],
  // ===== RAU CỦ =====
- ['Canh bí đỏ','canh',[['bí đỏ',500,'g']],20,'Dễ',20000,110],
- ['Canh bí xanh','canh',[['bí xanh',500,'g']],18,'Dễ',18000,90],
- ['Canh bí đao','canh',[['bí đao',500,'g']],18,'Dễ',18000,85],
- ['Canh bầu','canh',[['bầu',1,'trái']],18,'Dễ',16000,80],
- ['Canh su su','canh',[['su su',2,'trái']],18,'Dễ',18000,85],
- ['Canh khoai tây','canh',[['khoai tây',3,'củ'],['cà rốt',1,'củ']],20,'Dễ',22000,130],
- ['Canh cà rốt','canh',[['cà rốt',2,'củ']],20,'Dễ',16000,100],
- ['Canh củ cải trắng','canh',[['củ cải trắng',2,'củ']],20,'Dễ',18000,90],
+ ['Canh bí đỏ','canh',[['bí đỏ',500,'g']],20,'Dễ',20000,110,'1. Bí đỏ gọt vỏ, cắt miếng.\n2. Nấu với nước đến khi mềm.\n3. Nêm gia vị, có thể tán nhuyễn cho sánh.'],
+ ['Canh bí xanh','canh',[['bí xanh',500,'g']],18,'Dễ',18000,90,'1. Bí xanh gọt vỏ cắt miếng.\n2. Nước sôi cho bí vào.\n3. Nấu mềm, nêm gia vị, rắc hành.'],
+ ['Canh bí đao','canh',[['bí đao',500,'g']],18,'Dễ',18000,85,'1. Bí đao gọt vỏ cắt miếng.\n2. Cho vào nước sôi, nêm vừa.\n3. Nấu mềm, rắc hành ngò.'],
+ ['Canh bầu','canh',[['bầu',1,'trái']],18,'Dễ',16000,80,'1. Bầu gọt vỏ, thái lát.\n2. Nước sôi cho bầu vào, nêm gia vị.\n3. Nấu mềm, tắt bếp, rắc hành.'],
+ ['Canh su su','canh',[['su su',2,'trái']],18,'Dễ',18000,85,'1. Su su gọt vỏ thái miếng.\n2. Nấu trong nước sôi đến khi mềm.\n3. Nêm gia vị, rắc hành ngò.'],
+ ['Canh khoai tây','canh',[['khoai tây',3,'củ'],['cà rốt',1,'củ']],20,'Dễ',22000,130,'1. Khoai tây, cà rốt gọt vỏ, cắt miếng.\n2. Ninh trong nước đến khi mềm.\n3. Nêm gia vị, rắc hành lá.'],
+ ['Canh cà rốt','canh',[['cà rốt',2,'củ']],20,'Dễ',16000,100,'1. Cà rốt gọt vỏ, thái lát.\n2. Ninh mềm trong nước.\n3. Nêm gia vị, rắc hành ngò.'],
+ ['Canh củ cải trắng','canh',[['củ cải trắng',2,'củ']],20,'Dễ',18000,90,'1. Củ cải gọt vỏ, cắt khúc.\n2. Ninh trong nước đến mềm.\n3. Nêm gia vị, rắc hành ngò.'],
  // ===== NẤM =====
- ['Canh nấm kim châm','canh',[['nấm kim châm',200,'g'],['cà chua',1,'trái']],15,'Dễ',24000,90],
- ['Canh nấm đùi gà','canh',[['nấm đùi gà',200,'g']],15,'Dễ',26000,95],
- ['Canh nấm rơm','canh',[['nấm rơm',200,'g']],15,'Dễ',24000,90],
+ ['Canh nấm kim châm','canh',[['nấm kim châm',200,'g'],['cà chua',1,'trái']],15,'Dễ',24000,90,'1. Nấm kim châm cắt gốc, rửa sạch.\n2. Nước sôi cho cà chua vào nấu mềm.\n3. Cho nấm vào, nêm vừa, sôi 2 phút.'],
+ ['Canh nấm đùi gà','canh',[['nấm đùi gà',200,'g']],15,'Dễ',26000,95,'1. Nấm đùi gà thái lát.\n2. Nước sôi nêm gia vị.\n3. Cho nấm vào nấu 3-4 phút.'],
+ ['Canh nấm rơm','canh',[['nấm rơm',200,'g']],15,'Dễ',24000,90,'1. Nấm rơm bổ đôi, rửa sạch.\n2. Nước sôi nêm gia vị.\n3. Cho nấm vào nấu chín, rắc hành ngò.'],
  // ===== THANH MÁT =====
- ['Canh cà chua trứng','canh',[['cà chua',3,'trái'],['trứng gà',2,'quả']],15,'Dễ',24000,110],
- ['Canh chua chay','canh',[['dứa',0.5,'trái'],['đậu bắp',5,'trái'],['cà chua',2,'trái'],['giá đỗ',100,'g']],25,'Trung bình',35000,120],
- ['Canh rau củ thập cẩm','canh',[['cà rốt',1,'củ'],['khoai tây',2,'củ'],['su su',1,'trái']],25,'Dễ',28000,130],
- ['Canh bắp cải','canh',[['bắp cải',0.5,'cây']],18,'Dễ',17000,85],
- ['Canh bí đỏ cà rốt','canh',[['bí đỏ',400,'g'],['cà rốt',1,'củ']],22,'Dễ',24000,120],
- ['Canh bầu nấu gừng','canh',[['bầu',1,'trái'],['gừng',0.5,'củ']],18,'Dễ',18000,85],
+ ['Canh cà chua trứng','canh',[['cà chua',3,'trái'],['trứng gà',2,'quả']],15,'Dễ',24000,110,'1. Phi cà chua băm cho mềm.\n2. Thêm nước, đun sôi, nêm gia vị.\n3. Đổ trứng đánh tan vào khuấy nhẹ tạo vân, rắc hành.'],
+ ['Canh chua chay','canh',[['dứa',0.5,'trái'],['đậu bắp',5,'trái'],['cà chua',2,'trái'],['giá đỗ',100,'g']],25,'Trung bình',35000,120,'1. Đun nước với me hoặc dứa cho vị chua.\n2. Cho cà chua, đậu bắp vào nấu mềm.\n3. Thêm giá đỗ, nêm chua ngọt, rắc rau thơm.'],
+ ['Canh rau củ thập cẩm','canh',[['cà rốt',1,'củ'],['khoai tây',2,'củ'],['su su',1,'trái']],25,'Dễ',28000,130,'1. Cà rốt, khoai tây, su su cắt miếng.\n2. Ninh trong nước đến khi mềm.\n3. Nêm gia vị, rắc hành ngò.'],
+ ['Canh bắp cải','canh',[['bắp cải',0.5,'cây']],18,'Dễ',17000,85,'1. Bắp cải thái sợi.\n2. Nước sôi nêm gia vị, cho bắp cải vào.\n3. Nấu mềm 5 phút, rắc hành.'],
+ ['Canh bí đỏ cà rốt','canh',[['bí đỏ',400,'g'],['cà rốt',1,'củ']],22,'Dễ',24000,120,'1. Bí đỏ, cà rốt gọt vỏ cắt miếng.\n2. Ninh mềm trong nước.\n3. Nêm gia vị, có thể tán cho sánh.'],
+ ['Canh bầu nấu gừng','canh',[['bầu',1,'trái'],['gừng',0.5,'củ']],18,'Dễ',18000,85,'1. Bầu gọt vỏ thái lát, gừng đập dập.\n2. Nước sôi cho gừng, bầu vào.\n3. Nấu mềm, nêm vừa, rắc hành.'],
 ];
+
+/* tra cứu công thức theo tên món mẫu để tự điền cho món cũ còn trống */
+const RECIPE_BY_NAME={};
+SAMPLE.forEach(s=>{ if(s[7]) RECIPE_BY_NAME[s[0].trim().toLowerCase()]=s[7]; });
+function backfillRecipes(){
+  let changed=false;
+  (dishes||[]).forEach(d=>{
+    if(!d.recipe){ const r=RECIPE_BY_NAME[(d.name||'').trim().toLowerCase()]; if(r){ d.recipe=r; changed=true; } }
+  });
+  return changed;
+}
 
 let dishes=load(STORE_DISHES,null);
 if(!dishes){
-  dishes=SAMPLE.map((s,i)=>({id:'d'+(i+1),name:s[0],type:s[1],ing:s[2],time:s[3],difficulty:s[4],price:s[5],calories:s[6]}));
+  dishes=SAMPLE.map((s,i)=>({id:'d'+(i+1),name:s[0],type:s[1],ing:s[2],time:s[3],difficulty:s[4],price:s[5],calories:s[6],recipe:s[7]||''}));
+  save(STORE_DISHES,dishes);
+} else if(backfillRecipes()){
   save(STORE_DISHES,dishes);
 }
 let opts=load(STORE_OPTS,{numdays:5,norepeat:true,budgetOn:true,budget:120000});
@@ -340,6 +381,12 @@ let toastTimer;
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2000)}
 
 /* ---- tabs ---- */
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='list')renderList();
+}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
@@ -412,8 +459,8 @@ function renderPlan(){
           <button class="reroll" title="Đổi món ngày này" onclick="rerollDay(${i})">🔄</button>
         </span>
       </div>
-      <div class="mini"><span class="ic">🥩</span><div><div class="mn">${d.kho.name}<span class="tag kho">khô</span></div><div class="md">${d.kho.time} phút · ${fmt(d.kho.price)}</div></div></div>
-      <div class="mini"><span class="ic">🥬</span><div><div class="mn">${d.canh.name}<span class="tag canh">canh</span></div><div class="md">${d.canh.time} phút · ${fmt(d.canh.price)}</div></div></div>
+      <div class="mini"><span class="ic">🥩</span><div><div class="mn">${d.kho.name}<span class="tag kho">khô</span><button class="recipe-btn" onclick="showRecipe('${d.kho.id}')" title="Xem công thức">📖</button></div><div class="md">${d.kho.time} phút · ${fmt(d.kho.price)}</div></div></div>
+      <div class="mini"><span class="ic">🥬</span><div><div class="mn">${d.canh.name}<span class="tag canh">canh</span><button class="recipe-btn" onclick="showRecipe('${d.canh.id}')" title="Xem công thức">📖</button></div><div class="md">${d.canh.time} phút · ${fmt(d.canh.price)}</div></div></div>
     </div>`;
   }).join('');
 
@@ -454,21 +501,25 @@ function catOf(name){
   return 'giavi';
 }
 function buildShopping(plan){
-  const map={}; // key name|unit -> {name,unit,qty}
+  const map={}; // key = tên (chuẩn hóa) -> {name, units:{unit:qty}}
   plan.forEach(d=>[d.kho,d.canh].forEach(dish=>(dish.ing||[]).forEach(([nm,q,u])=>{
-    const key=nm+'|'+u; if(!map[key])map[key]={name:nm,unit:u,qty:0}; map[key].qty+=q;
+    const key=nm.trim().toLowerCase();
+    if(!map[key])map[key]={name:nm.trim(),units:{}};
+    map[key].units[u]=(map[key].units[u]||0)+q;
   })));
+  const qtyStr=units=>Object.entries(units).map(([u,q])=>`${trimNum(q)} ${u}`).join(' + ');
   const items=Object.values(map);
   let html='',text='DANH SÁCH ĐI CHỢ ('+plan.length+' ngày)\n';
   CATS.forEach(cat=>{
     const list=items.filter(it=>catOf(it.name)===cat.key).sort((a,b)=>a.name.localeCompare(b.name,'vi'));
     if(!list.length)return;
+    const showQty=cat.key!=='giavi';   // gia vị chỉ cần biết có cần, không ghi số lượng
     html+=`<div class="shop-cat"><h3>${cat.label}</h3>`;
     text+='\n'+cat.label+'\n';
     list.forEach(it=>{
-      const qt=`${trimNum(it.qty)} ${it.unit}`;
+      const qt=showQty?qtyStr(it.units):'';
       html+=`<label class="shop-item"><input type="checkbox" onchange="this.closest('.shop-item').classList.toggle('done',this.checked)"><span class="nm">${it.name}</span><span class="qt">${qt}</span></label>`;
-      text+=`  - ${it.name}: ${qt}\n`;
+      text+=`  - ${it.name}${qt?': '+qt:''}\n`;
     });
     html+=`</div>`;
   });
@@ -486,17 +537,68 @@ function parseIng(str){
     return [s,1,'phần'];
   });
 }
+let editingId=null;
+const gv=id=>document.getElementById(id).value;
+function startEdit(id){
+  const d=dishes.find(x=>x.id===id); if(!d)return;
+  editingId=id;
+  document.getElementById('f-name').value=d.name;
+  document.getElementById('f-type').value=d.type;
+  document.getElementById('f-price').value=d.price||'';
+  document.getElementById('f-ingredients').value=ingText(d.ing);
+  document.getElementById('f-time').value=d.time||'';
+  document.getElementById('f-difficulty').value=d.difficulty||'Dễ';
+  document.getElementById('f-calories').value=d.calories||'';
+  document.getElementById('f-recipe').value=d.recipe||'';
+  document.getElementById('form-title').textContent='✏️ Sửa món: '+d.name;
+  document.getElementById('form-sub').textContent='Chỉnh sửa thông tin rồi bấm Cập nhật.';
+  document.getElementById('form-save').textContent='💾 Cập nhật';
+  document.getElementById('form-cancel').style.display='';
+  switchTab('add');
+  document.getElementById('f-name').focus();
+}
+function resetForm(){
+  editingId=null;
+  document.getElementById('add-form').reset();
+  document.getElementById('form-title').textContent='Thêm món ăn mới';
+  document.getElementById('form-sub').textContent='Nhập nguyên liệu kèm số lượng để món hiện trong danh sách đi chợ.';
+  document.getElementById('form-save').textContent='💾 Lưu món';
+  document.getElementById('form-cancel').style.display='none';
+}
+document.getElementById('form-cancel').onclick=()=>{resetForm();switchTab('list')};
+
 document.getElementById('add-form').addEventListener('submit',e=>{
   e.preventDefault();
-  const name=document.getElementById('f-name').value.trim(); if(!name)return;
-  dishes.push({id:'d'+Date.now(),name,type:document.getElementById('f-type').value,
-    ing:parseIng(document.getElementById('f-ingredients').value),
-    time:+document.getElementById('f-time').value||0,
-    difficulty:document.getElementById('f-difficulty').value,
-    price:+document.getElementById('f-price').value||0,
-    calories:+document.getElementById('f-calories').value||0});
-  persistDishes(); e.target.reset(); toast('✅ Đã thêm "'+name+'"');
+  const name=gv('f-name').trim(); if(!name)return;
+  const payload={name,type:gv('f-type'),ing:parseIng(gv('f-ingredients')),
+    time:+gv('f-time')||0,difficulty:gv('f-difficulty'),
+    price:+gv('f-price')||0,calories:+gv('f-calories')||0,recipe:gv('f-recipe').trim()};
+  if(editingId){
+    Object.assign(dishes.find(x=>x.id===editingId),payload);
+    toast('✅ Đã cập nhật "'+name+'"'); persistDishes(); resetForm(); switchTab('list');
+  } else {
+    dishes.push({id:'d'+Date.now(),...payload});
+    toast('✅ Đã thêm "'+name+'"'); persistDishes(); resetForm();
+  }
 });
+
+/* ---- recipe modal ---- */
+function showRecipe(id){
+  const d=dishes.find(x=>x.id===id); if(!d)return;
+  const steps=(d.recipe||'').trim();
+  document.getElementById('recipe-box').innerHTML=`
+    <button class="modal-close" onclick="closeRecipe()">✕</button>
+    <h2>${d.name}<span class="tag ${d.type}">${d.type==='kho'?'khô':'canh'}</span></h2>
+    <div class="modal-meta">⏱️ ${d.time||'?'} phút · 📊 ${d.difficulty||'-'} · 💰 ${fmt(d.price)}${d.calories?' · 🔥 '+d.calories+' cal':''}</div>
+    <h4>🧺 Nguyên liệu (2 người)</h4>
+    <div class="recipe-ings">${ingText(d.ing)||'—'}</div>
+    <h4>👩‍🍳 Cách làm</h4>
+    <div class="recipe-steps">${steps?steps.replace(/</g,'&lt;'):'<i style="color:var(--muted)">Chưa có công thức. Bấm “Sửa” ở Danh sách món để thêm.</i>'}</div>`;
+  document.getElementById('recipe-modal').classList.add('show');
+}
+function closeRecipe(){document.getElementById('recipe-modal').classList.remove('show')}
+document.getElementById('recipe-modal').onclick=e=>{if(e.target.id==='recipe-modal')closeRecipe()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeRecipe()});
 
 /* ---- list ---- */
 let listFilter='all';
@@ -513,12 +615,12 @@ function renderList(){
   const body=document.getElementById('list-body');
   if(!rows.length){body.innerHTML='<tr><td colspan="8" class="empty">Chưa có món nào</td></tr>';return}
   body.innerHTML=rows.map(d=>`<tr>
-    <td><b>${d.name}</b></td>
+    <td><b>${d.name}</b>${d.recipe?`<button class="recipe-btn" onclick="showRecipe('${d.id}')" title="Xem công thức">📖</button>`:''}</td>
     <td><span class="tag ${d.type}">${d.type==='kho'?'Khô':'Canh'}</span></td>
     <td style="color:var(--muted);font-size:13px">${ingText(d.ing)||'-'}</td>
     <td>${d.time||'-'}</td><td>${d.difficulty||'-'}</td>
     <td>${d.price?fmt(d.price):'-'}</td><td>${d.calories||'-'}</td>
-    <td><button class="del" data-id="${d.id}">Xóa</button></td></tr>`).join('');
+    <td style="white-space:nowrap"><button class="edit" onclick="startEdit('${d.id}')">Sửa</button><button class="del" data-id="${d.id}">Xóa</button></td></tr>`).join('');
   body.querySelectorAll('.del').forEach(b=>b.onclick=()=>{dishes=dishes.filter(x=>x.id!==b.dataset.id);persistDishes();renderList()});
 }
 
@@ -546,8 +648,9 @@ async function pullCloud(){
   const {data,error}=await sb.from('mealmate').select('data').eq('code',SYNC_CODE).maybeSingle();
   if(error){ setBadge('⚠️ lỗi tải','bad'); console.error(error); return; }
   if(data&&Array.isArray(data.data)){
-    dishes=data.data; save(STORE_DISHES,dishes); renderList(); generate();
+    dishes=data.data; const changed=backfillRecipes(); save(STORE_DISHES,dishes); renderList(); generate();
     setBadge('✓ đã đồng bộ','ok');
+    if(changed) pushCloud();   // lưu lại công thức vừa điền lên cloud
   } else {
     // cloud trống: đẩy dữ liệu mẫu hiện có lên làm bản gốc
     await pushCloud();
